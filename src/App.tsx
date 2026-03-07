@@ -19,6 +19,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-indigo-400 font-mono">Verifying Privileges...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'admin') return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+}
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -29,7 +39,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
-            <Route path="/curriculum" element={<ProtectedRoute><AppLayout><CurriculumBuilder /></AppLayout></ProtectedRoute>} />
+            <Route path="/curriculum" element={<AdminRoute><AppLayout><CurriculumBuilder /></AppLayout></AdminRoute>} />
             <Route path="/track/enroll/:trackId" element={<ProtectedRoute><AppLayout><TrackViewer /></AppLayout></ProtectedRoute>} />
             <Route path="/track/:trackId/lesson/:lessonId" element={<ProtectedRoute><StudyMode /></ProtectedRoute>} />
             <Route path="/track/:trackId/module/:moduleId/assessment" element={<ProtectedRoute><AssessmentMode /></ProtectedRoute>} />
