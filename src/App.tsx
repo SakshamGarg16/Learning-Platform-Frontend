@@ -9,12 +9,18 @@ import { ReadinessScorecard } from './pages/ReadinessScorecard';
 import { StudyMode } from './pages/StudyMode';
 import { AssessmentMode } from './pages/AssessmentMode';
 import { Login } from './pages/Login';
+import { Onboarding } from './pages/Onboarding';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-indigo-400 font-mono">Initializing Session...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // If logged in but profile is not completed, force onboarding
+  if (user && !user.profileCompleted) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return <>{children}</>;
 }
@@ -24,6 +30,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-indigo-400 font-mono">Verifying Privileges...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (user && !user.profileCompleted) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   if (user?.role !== 'admin') return <Navigate to="/" replace />;
 
   return <>{children}</>;
@@ -38,6 +49,17 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={
+              <useAuth.Context.Consumer>
+                {(auth) => {
+                  if (auth?.isLoading) return null;
+                  if (!auth?.isAuthenticated) return <Navigate to="/login" replace />;
+                  if (auth?.user?.profileCompleted) return <Navigate to="/" replace />;
+                  return <Onboarding />;
+                }}
+              </useAuth.Context.Consumer>
+            } />
+
             <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/curriculum" element={<AdminRoute><AppLayout><CurriculumBuilder /></AppLayout></AdminRoute>} />
             <Route path="/track/enroll/:trackId" element={<ProtectedRoute><AppLayout><TrackViewer /></AppLayout></ProtectedRoute>} />

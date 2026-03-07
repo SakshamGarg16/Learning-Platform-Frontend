@@ -70,6 +70,26 @@ export function Login() {
                             Log In with Authentik
                         </Button>
 
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-neutral-800"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-neutral-900 px-2 text-neutral-500 font-bold tracking-widest">New Operator?</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={() => {
+                                // Dedicated registration flow we are creating in Authentik
+                                window.location.href = `http://localhost:9000/if/flow/registration/`;
+                            }}
+                            variant="secondary"
+                            className="w-full py-4 text-sm font-bold tracking-widest rounded-xl border-neutral-700"
+                        >
+                            Create New Account
+                        </Button>
+
                         <div className="pt-4 border-t border-neutral-800">
                             <p className="text-[10px] text-neutral-600 uppercase tracking-[0.2em] font-bold">
                                 Protected by RemCloud Gateway

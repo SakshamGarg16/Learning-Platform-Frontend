@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Link as LinkIcon, Check, ArrowRight } from 'lucide-react';
+import { Sparkles, Link as LinkIcon, Check, ArrowRight, Users, Phone, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
+import { useQuery } from '@tanstack/react-query';
 
 export function CurriculumBuilder() {
     const [topic, setTopic] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedSyllabus, setGeneratedSyllabus] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+    const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
+
+    // Fetch tracks managed by this admin
+    const { data: managedTracks, refetch: refetchTracks } = useQuery({
+        queryKey: ['managed-tracks'],
+        queryFn: async () => (await api.get('/tracks/')).data
+    });
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,9 +28,9 @@ export function CurriculumBuilder() {
         setIsGenerating(true);
 
         try {
-            // Call the actual Django endpoint
             const response = await api.post('/tracks/generate/', { topic });
             setGeneratedSyllabus(response.data);
+            refetchTracks();
         } catch (error) {
             console.error('Failed to generate syllabus:', error);
             alert('Failed to generate tracking curriculum. Ensure API key is set.');
@@ -33,34 +41,34 @@ export function CurriculumBuilder() {
 
     const shareLink = `http://localhost:5173/track/enroll/${generatedSyllabus?.id}`;
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(shareLink);
+    const copyToClipboard = (link?: string) => {
+        navigator.clipboard.writeText(link || shareLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-5xl mx-auto space-y-12 pb-20">
             <header>
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
                     <Sparkles className="text-indigo-400" /> AI Curriculum Engine
                 </h1>
-                <p className="text-neutral-400">Generate rigorous, dynamic learning tracks with a single prompt.</p>
+                <p className="text-neutral-400">Generate rigorous, dynamic learning tracks or manage your existing fleet.</p>
             </header>
 
-            <Card>
-                <form onSubmit={handleGenerate} className="flex gap-4 items-end">
-                    <div className="flex-1">
+            <Card className="border-indigo-500/10 bg-indigo-500/5">
+                <form onSubmit={handleGenerate} className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
                         <Input
-                            label="Learning Topic"
-                            placeholder="e.g. Advanced Django, React Server Components, Prompt Engineering..."
+                            label="New Learning Topic"
+                            placeholder="e.g. Advanced Django, React Server Components..."
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
                             disabled={isGenerating}
                         />
                     </div>
-                    <Button type="submit" isLoading={isGenerating} rightIcon={!isGenerating && <ArrowRight size={18} />}>
-                        Generate Track
+                    <Button type="submit" isLoading={isGenerating} className="w-full md:w-auto px-8" rightIcon={!isGenerating && <ArrowRight size={18} />}>
+                        Generate & Deploy
                     </Button>
                 </form>
             </Card>
@@ -68,15 +76,14 @@ export function CurriculumBuilder() {
             <AnimatePresence>
                 {generatedSyllabus && !isGenerating && (
                     <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         className="space-y-6"
                     >
-                        <Card gradientHover className="border-indigo-500/30 bg-indigo-500/5">
+                        <Card className="border-emerald-500/30 bg-emerald-500/5">
                             <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                                 <div>
-                                    <Badge variant="success" className="mb-3">Generation Complete</Badge>
+                                    <Badge variant="success" className="mb-3">New Track Successfully Deployed</Badge>
                                     <h2 className="text-2xl font-bold text-white mb-1">{generatedSyllabus.title}</h2>
                                     <p className="text-neutral-400">{generatedSyllabus.description}</p>
                                 </div>
@@ -87,29 +94,145 @@ export function CurriculumBuilder() {
                                         <code className="px-3 py-2 bg-neutral-950 rounded-lg text-sm text-neutral-300 border border-neutral-800 font-mono truncate max-w-[200px]">
                                             {shareLink}
                                         </code>
-                                        <Button variant="secondary" size="sm" onClick={copyToClipboard}>
+                                        <Button variant="secondary" size="sm" onClick={() => copyToClipboard()}>
                                             {copied ? <Check size={16} className="text-emerald-400" /> : <LinkIcon size={16} />}
                                         </Button>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 space-y-3">
-                                <h3 className="font-semibold text-neutral-300">Syllabus Overview</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {generatedSyllabus.modules.map((mod: any, idx: number) => (
-                                        <div key={idx} className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
-                                            <div className="text-xs font-bold text-indigo-400 mb-1">MODULE {idx + 1}</div>
-                                            <h4 className="font-medium text-white text-sm mb-3">{mod.title}</h4>
-                                            <p className="text-xs text-neutral-500">{mod.lessons?.length || 0} Lessons + Assessment</p>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
                         </Card>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <section className="space-y-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Users className="text-indigo-400" /> Managed Learning Tracks
+                </h2>
+
+                <div className="grid gap-4">
+                    {managedTracks?.map((track: any) => (
+                        <Card key={track.id} className="p-0 border-neutral-800 overflow-hidden">
+                            <div
+                                className="p-6 flex items-center justify-between cursor-pointer hover:bg-neutral-900/50 transition-colors"
+                                onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-neutral-800 rounded-xl text-neutral-400">
+                                        <FileText size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">{track.title}</h3>
+                                        <p className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
+                                            {track.modules?.length || 0} Modules • Created {new Date(track.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-6">
+                                    <div className="hidden sm:block text-right">
+                                        <p className="text-xs text-neutral-500 uppercase font-bold">Enrollment Link</p>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); copyToClipboard(`http://localhost:5173/track/enroll/${track.id}`); }}
+                                            className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 mt-1"
+                                        >
+                                            Copy Link <LinkIcon size={12} />
+                                        </button>
+                                    </div>
+                                    {expandedTrack === track.id ? <ChevronUp className="text-neutral-600" /> : <ChevronDown className="text-neutral-600" />}
+                                </div>
+                            </div>
+
+                            <AnimatePresence>
+                                {expandedTrack === track.id && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        className="border-t border-neutral-800 bg-neutral-950/50"
+                                    >
+                                        <CandidatesList trackId={track.id} />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </Card>
+                    ))}
+
+                    {(!managedTracks || managedTracks.length === 0) && (
+                        <div className="p-12 text-center bg-neutral-900/30 rounded-3xl border border-neutral-800 border-dashed">
+                            <p className="text-neutral-500 italic">No tracks have been deployed yet.</p>
+                        </div>
+                    )}
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function CandidatesList({ trackId }: { trackId: string }) {
+    const { data: candidates, isLoading } = useQuery({
+        queryKey: ['candidates', trackId],
+        queryFn: async () => (await api.get(`/tracks/${trackId}/enrolled_candidates/`)).data
+    });
+
+    if (isLoading) return <div className="p-8 text-center text-xs text-indigo-400 animate-pulse">Retrieving candidate dossiers...</div>;
+
+    if (!candidates || candidates.length === 0) {
+        return (
+            <div className="p-10 text-center text-neutral-500">
+                <p className="text-sm">No candidates have enrolled in this track yet.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6">
+            <div className="grid gap-3">
+                {candidates.map((c: any) => (
+                    <div key={c.id} className="flex flex-col md:flex-row items-center justify-between p-4 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-all">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold border border-indigo-500/20">
+                                {c.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-white leading-none mb-1">{c.name}</h4>
+                                <div className="flex items-center gap-3 text-xs text-neutral-500">
+                                    <span className="flex items-center gap-1"><LinkIcon size={12} /> {c.email}</span>
+                                    {c.phone && <span className="flex items-center gap-1"><Phone size={12} /> {c.phone}</span>}
+                                    {c.resume && (
+                                        <a
+                                            href={`http://localhost:8000${c.resume}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <FileText size={12} /> View Resume
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-8 mt-4 md:mt-0">
+                            <div className="text-right">
+                                <p className="text-[10px] text-neutral-500 uppercase font-bold text-left mb-1">Live Progress</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-32 h-2 bg-neutral-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-emerald-500 rounded-full"
+                                            style={{ width: `${c.progress}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-sm font-mono text-white font-bold">{c.progress}%</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-neutral-500 uppercase font-bold mb-1">Enrolled On</p>
+                                <p className="text-xs text-white uppercase">{new Date(c.enrolled_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

@@ -6,6 +6,7 @@ interface User {
     name: string;
     email: string;
     role: 'operator' | 'admin';
+    profileCompleted: boolean;
 }
 
 interface AuthContextType {
@@ -31,7 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: data.full_name,
                 email: data.email,
                 role: data.is_admin ? 'admin' : 'operator',
+                profileCompleted: data.profile_completed,
             });
+
+            // Set the CSRF token for all future requests
+            if (data.csrf_token) {
+                api.defaults.headers.common['X-CSRFToken'] = data.csrf_token;
+            }
         } catch (e) {
             setUser(null);
         } finally {
@@ -78,3 +85,5 @@ export function useAuth() {
     }
     return context;
 }
+
+useAuth.Context = AuthContext;
