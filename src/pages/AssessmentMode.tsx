@@ -17,7 +17,7 @@ import { Badge } from '../components/ui/Badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Monitor, Sparkles as SparklesIcon } from 'lucide-react';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 
 export function AssessmentMode() {
     const { trackId, moduleId } = useParams<{ trackId: string; moduleId: string }>();
@@ -62,6 +62,14 @@ export function AssessmentMode() {
             setCurrentStep('result');
         }
     });
+
+    // Auto-detect existing attempt to prevent retakes
+    useEffect(() => {
+        if (assessment?.user_latest_attempt && currentStep === 'intro') {
+            setResult(assessment.user_latest_attempt);
+            setCurrentStep('result');
+        }
+    }, [assessment, currentStep]);
 
     // Auto-generate questions if empty
     useEffect(() => {
@@ -320,28 +328,87 @@ export function AssessmentMode() {
                             </div>
 
                             {result.ai_feedback && (
-                                <Card className="bg-neutral-900/50 border-neutral-800 text-left p-8 max-w-2xl mx-auto space-y-4">
+                                <Card className="bg-neutral-900/50 border-neutral-800 text-left p-8 max-w-3xl mx-auto space-y-6">
                                     <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm uppercase tracking-widest">
                                         <HelpCircle size={16} /> AI Performance Analysis
                                     </div>
-                                    <div className="text-neutral-300 leading-relaxed prose prose-invert prose-sm">
-                                        {result.ai_feedback}
+                                    <div className="text-neutral-300 leading-relaxed prose prose-invert prose-indigo max-w-none ai-feedback-markdown">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                h3: ({ node, ...props }) => <h3 className="text-xl font-bold text-white mb-4 mt-6 first:mt-0" {...props} />,
+                                                p: ({ node, ...props }) => <p className="mb-4 last:mb-0" {...props} />,
+                                                strong: ({ node, ...props }) => <strong className="text-white font-bold" {...props} />,
+                                                ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2 text-neutral-400" {...props} />,
+                                                code: ({ node, ...props }) => <code className="bg-neutral-800 text-indigo-300 px-1.5 py-0.5 rounded font-mono text-[0.9em]" {...props} />
+                                            }}
+                                        >
+                                            {result.ai_feedback}
+                                        </ReactMarkdown>
                                     </div>
                                     {!result.passed && result.remedial_module_generated && (
-                                        <div className="pt-4 border-t border-neutral-800 mt-4 bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/20">
-                                            <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Remedial Sequence Active</p>
-                                            <p className="text-sm text-neutral-200 font-medium">
-                                                A targeted recovery module has been added to your track to address these knowledge gaps.
+                                        <div className="pt-6 border-t border-neutral-800 mt-6 bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <SparklesIcon className="text-indigo-400 w-5 h-5 animate-pulse" />
+                                                <p className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">Remedial Sequence Active</p>
+                                            </div>
+                                            <p className="text-sm text-neutral-200 font-medium leading-relaxed">
+                                                A targeted recovery module has been synthesized to address the identified knowledge gaps. You can begin this sequence from your fleet view.
                                             </p>
                                         </div>
                                     )}
                                 </Card>
                             )}
 
-                            <div className="pt-8">
+                            {/* Optional: Show question review for the candidate */}
+                            <div className="pt-12 text-left space-y-8 max-w-3xl mx-auto">
+                                <div className="h-px bg-neutral-800 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-white uppercase tracking-tight">Technical Ledger</h3>
+                                    <Badge variant="neutral" className="opacity-60 uppercase text-[9px] tracking-widest">Post-Assessment Audit</Badge>
+                                </div>
+                                <div className="space-y-12 pb-20">
+                                    {questions.map((q: any, qIdx: number) => {
+                                        const userAns = result.answers_data?.[qIdx] !== undefined ? result.answers_data[qIdx] : (answers[qIdx]);
+
+                                        // Simple correctness check for viewable feedback
+                                        const correctVal = q.correct_answer !== undefined ? q.correct_answer : q.correct_index;
+                                        const isCorrect = Array.isArray(userAns)
+                                            ? JSON.stringify(userAns.sort()) === JSON.stringify((Array.isArray(correctVal) ? correctVal : [correctVal]).sort())
+                                            : String(userAns) === String(correctVal);
+
+                                        return (
+                                            <div key={qIdx} className="space-y-4">
+                                                <div className="flex gap-4">
+                                                    <span className="text-neutral-600 font-mono text-sm">{String(qIdx + 1).padStart(2, '0')}</span>
+                                                    <div className="text-neutral-300 text-sm leading-relaxed prose prose-invert prose-indigo max-w-none">
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.question}</ReactMarkdown>
+                                                    </div>
+                                                </div>
+                                                <div className="ml-9 p-4 rounded-xl border border-neutral-800 bg-neutral-900/30 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-2 h-2 rounded-full ${isCorrect ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                        <span className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Logic Alignment:</span>
+                                                        <span className={`text-[11px] font-bold ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                            {isCorrect ? 'VALIDATED' : 'DIVERGENCE'}
+                                                        </span>
+                                                    </div>
+                                                    {!isCorrect && (
+                                                        <div className="text-[10px] text-indigo-400/60 font-medium">
+                                                            Review required in remedial tracks
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="pt-8 mb-20">
                                 <Button
                                     variant="primary"
-                                    className="w-full max-w-xs"
+                                    className="w-full max-w-xs h-14 text-lg"
                                     onClick={() => navigate(`/track/enroll/${trackId}`)}
                                 >
                                     {result.passed ? "Return to Fleet Progress" : "Initiate Recovery Flow"}

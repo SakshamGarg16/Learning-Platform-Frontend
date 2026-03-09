@@ -10,6 +10,8 @@ import { StudyMode } from './pages/StudyMode';
 import { AssessmentMode } from './pages/AssessmentMode';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
+import { AdminPortal } from './pages/AdminPortal';
+import CandidatePerspective from './pages/CandidatePerspective';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -49,6 +51,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<AdminPortal />} />
             <Route path="/onboarding" element={
               <useAuth.Context.Consumer>
                 {(auth) => {
@@ -66,6 +69,7 @@ function App() {
             <Route path="/track/:trackId/lesson/:lessonId" element={<ProtectedRoute><StudyMode /></ProtectedRoute>} />
             <Route path="/track/:trackId/module/:moduleId/assessment" element={<ProtectedRoute><AssessmentMode /></ProtectedRoute>} />
             <Route path="/readiness" element={<ProtectedRoute><AppLayout><ReadinessScorecard /></AppLayout></ProtectedRoute>} />
+            <Route path="/admin/track/:trackId/candidate/:learnerId/perspective" element={<AdminRoute><CandidatePerspective /></AdminRoute>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

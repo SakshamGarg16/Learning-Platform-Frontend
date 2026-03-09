@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Link as LinkIcon, Check, ArrowRight, Users, Phone, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Link as LinkIcon, Check, ArrowRight, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { useQuery } from '@tanstack/react-query';
-
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function CurriculumBuilder() {
@@ -182,72 +182,78 @@ export function CurriculumBuilder() {
     );
 }
 
-function CandidatesList({ trackId }: { trackId: string }) {
+export function CandidatesList({ trackId }: { trackId: string }) {
+    const navigate = useNavigate();
     const { data: candidates, isLoading } = useQuery({
         queryKey: ['candidates', trackId],
-        queryFn: async () => (await api.get(`/tracks/${trackId}/enrolled_candidates/`)).data
+        queryFn: async () => (await api.get(`/tracks/${trackId}/enrolled_candidates/`)).data,
     });
 
-    if (isLoading) return <div className="p-8 text-center text-xs text-indigo-400 animate-pulse">Retrieving candidate dossiers...</div>;
-
-    if (!candidates || candidates.length === 0) {
-        return (
-            <div className="p-10 text-center text-neutral-500">
-                <p className="text-sm">No candidates have enrolled in this track yet.</p>
-            </div>
-        );
-    }
+    if (isLoading) return <div className="p-6 text-neutral-500 animate-pulse font-mono text-xs uppercase tracking-widest text-center">Interrogating Academic Database...</div>;
 
     return (
-        <div className="p-6">
-            <div className="grid gap-3">
-                {candidates.map((c: any) => (
-                    <div key={c.id} className="flex flex-col md:flex-row items-center justify-between p-4 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-all">
-                        <div className="flex items-center gap-4 flex-1">
-                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold border border-indigo-500/20">
-                                {c.name.charAt(0)}
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white leading-none mb-1">{c.name}</h4>
-                                <div className="flex items-center gap-3 text-xs text-neutral-500">
-                                    <span className="flex items-center gap-1"><LinkIcon size={12} /> {c.email}</span>
-                                    {c.phone && <span className="flex items-center gap-1"><Phone size={12} /> {c.phone}</span>}
-                                    {c.resume && (
-                                        <a
-                                            href={`http://localhost:8000${c.resume}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <FileText size={12} /> View Resume
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-8 mt-4 md:mt-0">
-                            <div className="text-right">
-                                <p className="text-[10px] text-neutral-500 uppercase font-bold text-left mb-1">Live Progress</p>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-32 h-2 bg-neutral-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-emerald-500 rounded-full"
-                                            style={{ width: `${c.progress}%` }}
-                                        />
+        <div className="p-8">
+            <div className="flex items-center gap-2 mb-8 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">
+                <Users size={14} /> Registered Candidates
+            </div>
+            <div className="grid gap-6">
+                {candidates?.map((candidate: any) => (
+                    <Card
+                        key={candidate.id}
+                        className="p-8 bg-neutral-900/40 border-neutral-800 hover:border-blue-500/20 hover:bg-neutral-900/60 transition-all duration-700 cursor-pointer group"
+                        onClick={() => navigate(`/admin/track/${trackId}/candidate/${candidate.id}/perspective`)}
+                    >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div className="flex items-center gap-6">
+                                <div className="relative">
+                                    <div className="w-16 h-16 rounded-3xl bg-neutral-800 flex items-center justify-center text-xl font-black text-neutral-400 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
+                                        {candidate.name.charAt(0)}
                                     </div>
-                                    <span className="text-sm font-mono text-white font-bold">{c.progress}%</span>
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-blue-500 border-4 border-[#050505] flex items-center justify-center shadow-lg">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="font-bold text-xl text-white group-hover:text-blue-400 transition-colors leading-none">{candidate.name}</h4>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Badge variant="neutral" className="bg-white/5 border-white/10 text-[10px] uppercase font-mono px-3">{candidate.email}</Badge>
+                                        <div className="text-[10px] text-neutral-600 font-mono tracking-widest uppercase">Member since {new Date(candidate.enrolled_at).toLocaleDateString()}</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-[10px] text-neutral-500 uppercase font-bold mb-1">Enrolled On</p>
-                                <p className="text-xs text-white uppercase">{new Date(c.enrolled_at).toLocaleDateString()}</p>
+
+                            <div className="flex items-center gap-12">
+                                <div className="text-right space-y-3">
+                                    <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Mastery Status</div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-40 h-1.5 bg-neutral-800 rounded-full overflow-hidden shadow-inner hidden sm:block">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${candidate.progress || 0}%` }}
+                                                transition={{ duration: 1.5, ease: "circOut" }}
+                                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                                            />
+                                        </div>
+                                        <span className="font-mono font-black text-blue-400 text-lg tabular-nums">{candidate.progress || 0}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-500 transition-all duration-500 shadow-xl">
+                                        <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </Card>
                 ))}
             </div>
+
+            {(!candidates || candidates.length === 0) && (
+                <div className="p-20 text-center space-y-4">
+                    <Users size={48} className="mx-auto text-neutral-800 mb-6" />
+                    <p className="text-neutral-500 font-medium italic">No candidates have appeared on this track's radar yet.</p>
+                </div>
+            )}
         </div>
     );
 }

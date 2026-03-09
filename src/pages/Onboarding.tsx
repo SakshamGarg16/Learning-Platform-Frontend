@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Phone, ArrowRight, Sparkles, FileText, Upload } from 'lucide-react';
+import { User as UserIcon, Phone, ArrowRight, Sparkles, FileText, Upload } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function Onboarding() {
     const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         full_name: user?.name || '',
@@ -78,7 +79,7 @@ export function Onboarding() {
                             value={formData.full_name}
                             onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                             placeholder="John Doe"
-                            leftIcon={<User size={18} />}
+                            leftIcon={<UserIcon size={18} />}
                             required
                         />
 
@@ -91,57 +92,61 @@ export function Onboarding() {
                             required
                         />
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-neutral-400 uppercase tracking-wider block">
-                                Resume / CV (PDF or Word)
-                            </label>
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-800 border-dashed rounded-xl cursor-pointer bg-neutral-900/50 hover:bg-neutral-900 hover:border-indigo-500/50 transition-all group">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    {resumeFile ? (
-                                        <>
-                                            <FileText className="w-8 h-8 mb-3 text-indigo-400" />
-                                            <p className="text-xs text-white font-medium">{resumeFile.name}</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="w-8 h-8 mb-3 text-neutral-600 group-hover:text-indigo-400 transition-colors" />
-                                            <p className="mb-2 text-sm text-neutral-500">
-                                                <span className="font-bold">Click to upload</span> or drag and drop
-                                            </p>
-                                            <p className="text-xs text-neutral-600">PDF, DOCX (Max. 5MB)</p>
-                                        </>
-                                    )}
+                        {!isAdmin && (
+                            <>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-neutral-400 uppercase tracking-wider block">
+                                        Resume / CV (PDF or Word)
+                                    </label>
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-800 border-dashed rounded-xl cursor-pointer bg-neutral-900/50 hover:bg-neutral-900 hover:border-indigo-500/50 transition-all group">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            {resumeFile ? (
+                                                <>
+                                                    <FileText className="w-8 h-8 mb-3 text-indigo-400" />
+                                                    <p className="text-xs text-white font-medium">{resumeFile.name}</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-8 h-8 mb-3 text-neutral-600 group-hover:text-indigo-400 transition-colors" />
+                                                    <p className="mb-2 text-sm text-neutral-500">
+                                                        <span className="font-bold">Click to upload</span> or drag and drop
+                                                    </p>
+                                                    <p className="text-xs text-neutral-600">PDF, DOCX (Max. 5MB)</p>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,.doc,.docx"
+                                            onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                                            required={!isAdmin}
+                                        />
+                                    </label>
                                 </div>
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,.doc,.docx"
-                                    onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                                    required
-                                />
-                            </label>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-neutral-400 uppercase tracking-wider block">
-                                Experience Level
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {(['student', 'professional', 'switcher'] as const).map((level) => (
-                                    <button
-                                        key={level}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, experience_level: level })}
-                                        className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all capitalize ${formData.experience_level === level
-                                            ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
-                                            : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-700'
-                                            }`}
-                                    >
-                                        {level}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-neutral-400 uppercase tracking-wider block">
+                                        Experience Level
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['student', 'professional', 'switcher'] as const).map((level) => (
+                                            <button
+                                                key={level}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, experience_level: level })}
+                                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all capitalize ${formData.experience_level === level
+                                                    ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
+                                                    : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-700'
+                                                    }`}
+                                            >
+                                                {level}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         <Button
                             type="submit"

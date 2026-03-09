@@ -35,7 +35,6 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 
     useEffect(() => {
         if (ref.current && chart) {
-            // High-entropy unique ID for the SVG render
             const id = `mermaid-render-${Math.random().toString(36).substring(2, 12)}`;
 
             const renderDiagram = async () => {
@@ -66,7 +65,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
                         ref.current.innerHTML = svg;
                         const svgElement = ref.current.querySelector('svg');
                         if (svgElement) {
-                            svgElement.style.maxWidth = '100% text-center';
+                            svgElement.style.maxWidth = '100%';
                             svgElement.style.height = 'auto';
                             svgElement.style.display = 'block';
                             svgElement.style.margin = '0 auto';
@@ -77,50 +76,34 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
                     setError("Structural Matrix Fallback Mode Active.");
                 }
             };
-            if (ref.current) {
-                ref.current.innerHTML = svg;
-                const svgElement = ref.current.querySelector('svg');
-                if (svgElement) {
-                    svgElement.style.maxWidth = '1000px';
-                    svgElement.style.height = 'auto';
-                    svgElement.style.display = 'block';
-                    svgElement.style.margin = '0 auto';
-                }
-            }
-        } catch (err) {
-            console.error("Mermaid Render Error:", err);
-            setError("Structural Matrix Fallback Mode Active.");
-        }
-    };
 
-    renderDiagram();
-}
+            renderDiagram();
+        }
     }, [chart]);
 
-if (error) {
-    return (
-        <div className="my-10 p-6 rounded-3xl bg-red-500/5 border border-red-500/10 text-xs font-mono text-neutral-400 max-w-full overflow-hidden shadow-2xl">
-            <div className="font-bold mb-4 flex items-center gap-2 text-red-500/80 uppercase tracking-widest text-[10px]">
-                <Monitor size={14} /> Matrix Integrity Anomaly
+    if (error) {
+        return (
+            <div className="my-10 p-6 rounded-3xl bg-red-500/5 border border-red-500/10 text-xs font-mono text-neutral-400 max-w-full overflow-hidden shadow-2xl">
+                <div className="font-bold mb-4 flex items-center gap-2 text-red-500/80 uppercase tracking-widest text-[10px]">
+                    <Monitor size={14} /> Matrix Integrity Anomaly
+                </div>
+                <pre className="opacity-80 whitespace-pre-wrap text-[11px] bg-black/40 p-6 rounded-2xl border border-white/5 leading-relaxed overflow-x-auto custom-scrollbar">
+                    {chart}
+                </pre>
             </div>
-            <pre className="opacity-80 whitespace-pre-wrap text-[11px] bg-black/40 p-6 rounded-2xl border border-white/5 leading-relaxed overflow-x-auto custom-scrollbar">
-                {chart}
-            </pre>
+        );
+    }
+
+    return (
+        <div className="my-16 p-6 md:p-16 lg:p-24 rounded-[3.5rem] bg-neutral-900/40 border border-neutral-800 shadow-[20px_20px_60px_#050505,-20px_-20px_60px_#151515] flex flex-col items-center overflow-visible min-h-[500px]">
+            <div className="w-full overflow-x-auto overflow-y-visible py-12 custom-scrollbar flex justify-center">
+                <div
+                    ref={ref}
+                    className="mermaid-render text-center transition-opacity duration-700 w-full flex justify-center items-center"
+                />
+            </div>
         </div>
     );
-}
-
-return (
-    <div className="my-16 p-6 md:p-16 lg:p-24 rounded-[3.5rem] bg-neutral-900/40 border border-neutral-800 shadow-[20px_20px_60px_#050505,-20px_-20px_60px_#151515] flex flex-col items-center overflow-visible min-h-[500px]">
-
-        <div className="w-full overflow-x-auto overflow-y-visible py-12 custom-scrollbar flex justify-center">
-            <div
-                ref={ref}
-                className="mermaid-render text-center transition-opacity duration-700 w-full flex justify-center items-center"
-            />
-        </div>
-    </div>
-);
 };
 
 export function StudyMode() {
