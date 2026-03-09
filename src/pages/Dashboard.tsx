@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { PlayCircle, Award, CheckCircle2, BookOpen } from 'lucide-react';
+import { PlayCircle, Award, CheckCircle2, BookOpen, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function Dashboard() {
@@ -21,25 +21,75 @@ export function Dashboard() {
 
     const mockScore = readinessData?.length > 0 ? readinessData[0].score : '0.0';
 
+    const activeLearning = tracksData?.filter((t: any) => t.is_enrolled && !t.is_creator && t.progress_percentage < 100) || [];
+    const yourCreations = tracksData?.filter((t: any) => t.is_creator && t.progress_percentage < 100) || [];
+    const completed = tracksData?.filter((t: any) => t.progress_percentage === 100) || [];
+
     const stats = [
         { label: 'Readiness Score', value: mockScore, icon: Award, color: 'text-emerald-400' },
-        { label: 'Active Curriculums', value: tracksData?.length.toString() || '0', icon: CheckCircle2, color: 'text-indigo-400' },
+        { label: 'Active Progress', value: (activeLearning.length + yourCreations.length).toString(), icon: CheckCircle2, color: 'text-indigo-400' },
     ];
 
+    const TrackGrid = ({ tracks, title }: { tracks: any[], title: string }) => {
+        if (tracks.length === 0) return null;
+        return (
+            <div className="space-y-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <CheckCircle2 className="text-indigo-400" /> {title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {tracks.map((track: any, idx: number) => (
+                        <motion.div
+                            key={track.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                        >
+                            <Link to={`/track/enroll/${track.id}`}>
+                                <Card gradientHover className="p-0 overflow-hidden h-full flex flex-col border-neutral-800 hover:border-indigo-500/50 transition-all cursor-pointer group">
+                                    <div className="p-5 border-b border-neutral-800 bg-neutral-900/50 flex-1">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <Badge variant={track.is_ai_generated ? "indigo" : "neutral"}>
+                                                {track.is_ai_generated ? "AI Generated" : "Custom"}
+                                            </Badge>
+                                            <div className="text-right">
+                                                <span className="text-lg font-bold text-white">{track.progress_percentage || 0}%</span>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors line-clamp-1">{track.title}</h3>
+                                        <p className="text-sm text-neutral-500 line-clamp-2 mb-4">{track.description}</p>
+                                    </div>
+                                    <div className="p-4 bg-neutral-900 flex items-center justify-between">
+                                        <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
+                                            {track.modules?.length || 0} Modules
+                                        </span>
+                                        <div className="flex items-center gap-1 text-xs font-bold text-indigo-400 group-hover:translate-x-1 transition-transform">
+                                            Enter Track <PlayCircle size={14} />
+                                        </div>
+                                    </div>
+                                </Card>
+                            </Link>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="space-y-12 max-w-6xl mx-auto pb-20">
             <header className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome back, Operator</h1>
                     <p className="text-neutral-400">Your personalized knowledge ecosystem is ready.</p>
                 </div>
                 <Link to="/curriculum">
-                    <Button>Build New Module</Button>
+                    <Button leftIcon={<Sparkles size={18} />}>Generate New Track</Button>
                 </Link>
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {stats.map((stat, idx) => (
                     <motion.div
                         key={stat.label}
@@ -61,55 +111,19 @@ export function Dashboard() {
             </div>
 
             {/* Main Content Area */}
-            <div className="space-y-6">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <CheckCircle2 className="text-indigo-400" /> Your Learning Tracks
-                </h2>
-
+            <div className="space-y-12">
                 {loadingTracks ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map(i => (
-                            <Card key={i} className="h-48 animate-pulse bg-neutral-900/50 border-neutral-800">
-                                <div className="p-5 h-full" />
-                            </Card>
+                        {[1, 2, 3].map((i) => (
+                            <Card key={i} className="h-48 animate-pulse bg-neutral-900/50 border-neutral-800"><div className="p-5 h-full" /></Card>
                         ))}
                     </div>
-                ) : tracksData?.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {tracksData.map((track: any, idx: number) => (
-                            <motion.div
-                                key={track.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.05 }}
-                            >
-                                <Link to={`/track/enroll/${track.id}`}>
-                                    <Card gradientHover className="p-0 overflow-hidden h-full flex flex-col border-neutral-800 hover:border-indigo-500/50 transition-all cursor-pointer group">
-                                        <div className="p-5 border-b border-neutral-800 bg-neutral-900/50 flex-1">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <Badge variant={track.is_ai_generated ? "indigo" : "neutral"}>
-                                                    {track.is_ai_generated ? "AI Generated" : "Custom"}
-                                                </Badge>
-                                                <div className="text-right">
-                                                    <span className="text-lg font-bold text-white">{track.progress_percentage || 0}%</span>
-                                                </div>
-                                            </div>
-                                            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors line-clamp-1">{track.title}</h3>
-                                            <p className="text-sm text-neutral-500 line-clamp-2 mb-4">{track.description}</p>
-                                        </div>
-                                        <div className="p-4 bg-neutral-900 flex items-center justify-between">
-                                            <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
-                                                {track.modules?.length || 0} Modules
-                                            </span>
-                                            <div className="flex items-center gap-1 text-xs font-bold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                                                Enter Track <PlayCircle size={14} />
-                                            </div>
-                                        </div>
-                                    </Card>
-                                </Link>
-                            </motion.div>
-                        ))}
-                    </div>
+                ) : (tracksData?.length > 0) ? (
+                    <>
+                        <TrackGrid tracks={activeLearning} title="Active Learning Tracks" />
+                        <TrackGrid tracks={yourCreations} title="Your Custom Lab" />
+                        <TrackGrid tracks={completed} title="Completed Masteries" />
+                    </>
                 ) : (
                     <Card className="p-12 text-center">
                         <div className="max-w-md mx-auto space-y-4">

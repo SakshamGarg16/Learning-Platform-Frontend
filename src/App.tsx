@@ -61,7 +61,7 @@ function App() {
             } />
 
             <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
-            <Route path="/curriculum" element={<AdminRoute><AppLayout><CurriculumBuilder /></AppLayout></AdminRoute>} />
+            <Route path="/curriculum" element={<ProtectedRoute><AppLayout><CurriculumBuilder /></AppLayout></ProtectedRoute>} />
             <Route path="/track/enroll/:trackId" element={<ProtectedRoute><AppLayout><TrackViewer /></AppLayout></ProtectedRoute>} />
             <Route path="/track/:trackId/lesson/:lessonId" element={<ProtectedRoute><StudyMode /></ProtectedRoute>} />
             <Route path="/track/:trackId/module/:moduleId/assessment" element={<ProtectedRoute><AssessmentMode /></ProtectedRoute>} />

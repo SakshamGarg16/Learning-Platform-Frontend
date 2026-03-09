@@ -8,12 +8,17 @@ import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { useQuery } from '@tanstack/react-query';
 
+import { useAuth } from '../contexts/AuthContext';
+
 export function CurriculumBuilder() {
+    const { user } = useAuth();
     const [topic, setTopic] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedSyllabus, setGeneratedSyllabus] = useState<any>(null);
     const [copied, setCopied] = useState(false);
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
+
+    const isAdmin = user?.role === 'admin';
 
     // Fetch tracks managed by this admin
     const { data: managedTracks, refetch: refetchTracks } = useQuery({
@@ -88,17 +93,19 @@ export function CurriculumBuilder() {
                                     <p className="text-neutral-400">{generatedSyllabus.description}</p>
                                 </div>
 
-                                <div className="flex-shrink-0 w-full md:w-auto p-4 rounded-xl bg-neutral-900 border border-neutral-800">
-                                    <p className="text-xs font-medium text-neutral-500 mb-2 uppercase tracking-wider">Share Link</p>
-                                    <div className="flex items-center gap-2">
-                                        <code className="px-3 py-2 bg-neutral-950 rounded-lg text-sm text-neutral-300 border border-neutral-800 font-mono truncate max-w-[200px]">
-                                            {shareLink}
-                                        </code>
-                                        <Button variant="secondary" size="sm" onClick={() => copyToClipboard()}>
-                                            {copied ? <Check size={16} className="text-emerald-400" /> : <LinkIcon size={16} />}
-                                        </Button>
+                                {isAdmin && (
+                                    <div className="flex-shrink-0 w-full md:w-auto p-4 rounded-xl bg-neutral-900 border border-neutral-800">
+                                        <p className="text-xs font-medium text-neutral-500 mb-2 uppercase tracking-wider">Share Link</p>
+                                        <div className="flex items-center gap-2">
+                                            <code className="px-3 py-2 bg-neutral-950 rounded-lg text-sm text-neutral-300 border border-neutral-800 font-mono truncate max-w-[200px]">
+                                                {shareLink}
+                                            </code>
+                                            <Button variant="secondary" size="sm" onClick={() => copyToClipboard()}>
+                                                {copied ? <Check size={16} className="text-emerald-400" /> : <LinkIcon size={16} />}
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </Card>
                     </motion.div>
@@ -107,11 +114,11 @@ export function CurriculumBuilder() {
 
             <section className="space-y-6">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Users className="text-indigo-400" /> Managed Learning Tracks
+                    <Users className="text-indigo-400" /> {isAdmin ? "Managed Learning Tracks" : "Your Generated Tracks"}
                 </h2>
 
                 <div className="grid gap-4">
-                    {managedTracks?.map((track: any) => (
+                    {managedTracks?.filter((t: any) => t.is_creator).map((track: any) => (
                         <Card key={track.id} className="p-0 border-neutral-800 overflow-hidden">
                             <div
                                 className="p-6 flex items-center justify-between cursor-pointer hover:bg-neutral-900/50 transition-colors"
@@ -129,21 +136,29 @@ export function CurriculumBuilder() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6">
-                                    <div className="hidden sm:block text-right">
-                                        <p className="text-xs text-neutral-500 uppercase font-bold">Enrollment Link</p>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); copyToClipboard(`http://localhost:5173/track/enroll/${track.id}`); }}
-                                            className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 mt-1"
-                                        >
-                                            Copy Link <LinkIcon size={12} />
-                                        </button>
-                                    </div>
-                                    {expandedTrack === track.id ? <ChevronUp className="text-neutral-600" /> : <ChevronDown className="text-neutral-600" />}
+                                    {isAdmin && (
+                                        <div className="hidden sm:block text-right">
+                                            <p className="text-xs text-neutral-500 uppercase font-bold">Enrollment Link</p>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(`http://localhost:5173/track/enroll/${track.id}`); }}
+                                                className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 mt-1"
+                                            >
+                                                Copy Link <LinkIcon size={12} />
+                                            </button>
+                                        </div>
+                                    )}
+                                    {isAdmin ? (
+                                        expandedTrack === track.id ? <ChevronUp className="text-neutral-600" /> : <ChevronDown className="text-neutral-600" />
+                                    ) : (
+                                        <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                            <ArrowRight size={16} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <AnimatePresence>
-                                {expandedTrack === track.id && (
+                                {isAdmin && expandedTrack === track.id && (
                                     <motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}

@@ -43,10 +43,10 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
                     setError(null);
                     let rawContent = chart.trim();
 
-                    // 1. Initial Normalization: Treat semicolons as newlines for statement separation
+                    // 1. Initial Normalization: Treat semicolons as newlines
                     rawContent = rawContent.replace(/;/g, '\n');
 
-                    // 2. Structural Extraction: Locate diagram start
+                    // 2. Structural Root Discovery
                     const diagramKeywords = ['graph', 'flowchart', 'sequenceDiagram', 'stateDiagram', 'classDiagram', 'gantt', 'pie', 'erDiagram'];
                     const lowerContent = rawContent.toLowerCase();
                     let startIndex = -1;
@@ -55,63 +55,18 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
                         if (idx !== -1 && (startIndex === -1 || idx < startIndex)) startIndex = idx;
                     }
 
+                    // 3. Fallback to graph TD if no root found
                     let cleanChart = startIndex !== -1 ? rawContent.substring(startIndex) : `graph TD\n${rawContent}`;
 
-                    // 3. Selective Reconstruction Engine
-                    const lines = cleanChart.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                    const processedLines: string[] = [];
-                    const keywords = ['graph', 'flowchart', 'sequenceDiagram', 'stateDiagram', 'classDiagram', 'subgraph', 'end', 'TD', 'LR', 'BT', 'RL', 'click', 'callback', 'style', 'class', 'direction'];
+                    // 4. Basic Sanitization: Remove any stray backticks or markdown fences that hallucinated inside
+                    cleanChart = cleanChart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
 
-                    for (let line of lines) {
-                        // Skip keyword lines
-                        if (keywords.some(k => line.split(/[\s\[\(\{]/)[0].toLowerCase() === k.toLowerCase())) {
-                            processedLines.push(line);
-                            continue;
-                        }
-
-                        // Standardize arrows
-                        line = line.replace(/--X/gi, "--x").replace(/--O/gi, "--o");
-
-                        // 4. Unified Node Tokenizer
-                        // This regex matches ID[Label] or ID(Label) etc. while respecting nested parentheses inside brackets.
-                        // It ensures we don't match across arrows by stopping at ] or ).
-                        const nodePattern = /(\b\w+)\s*(\[[^\]]+\]|\([^)]+\)|\{[^}]+\}|>[^<]+<)/g;
-                        const cleanse = (t: string) => t.replace(/["'`;`\\/]/g, '').replace(/\*\*/g, '').trim();
-
-                        let hasStructure = line.includes('-->') || line.includes('---') || line.includes('==>') ||
-                            line.includes('-.-') || line.includes('--x') || line.includes('--o');
-
-                        line = line.replace(nodePattern, (match, nodeId, bracketed) => {
-                            if (keywords.includes(nodeId)) return match;
-                            hasStructure = true;
-                            // Extract bracket type and content
-                            const open = bracketed[0];
-                            const close = bracketed[bracketed.length - 1];
-                            const content = bracketed.slice(1, -1);
-                            return `${nodeId}${open}"${cleanse(content)}"${close}`;
-                        });
-
-                        // 5. Edge Label Normalization
-                        line = line.replace(/--\s*['"]?([^"'\->\n|]+)['"]?\s*-->/g, (_, label) => `-- "${cleanse(label)}" -->`);
-                        line = line.replace(/-->\s*\|\s*['"]?([^"'\->\n|]+)['"]?\s*\|\s*/g, (_, label) => `-->|"${cleanse(label)}"| `);
-
-                        // 6. Smarter Naked Line Detection
-                        // If a line is long, contains no arrows, and wasn't identified as a node, wrap it.
-                        if (!hasStructure && line.length > 3 && !keywords.includes(line.split(/\s/)[0])) {
-                            const safeId = `node_${Math.random().toString(36).substring(2, 7)}`;
-                            line = `${safeId}["${cleanse(line)}"]`;
-                        }
-
-                        processedLines.push(line);
-                    }
-
-                    const finalChart = processedLines.join('\n');
-                    const { svg } = await mermaid.render(id, finalChart);
+                    const { svg } = await mermaid.render(id, cleanChart);
                     if (ref.current) {
                         ref.current.innerHTML = svg;
                         const svgElement = ref.current.querySelector('svg');
                         if (svgElement) {
-                            svgElement.style.maxWidth = '1000px';
+                            svgElement.style.maxWidth = '100% text-center';
                             svgElement.style.height = 'auto';
                             svgElement.style.display = 'block';
                             svgElement.style.margin = '0 auto';
@@ -122,35 +77,50 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
                     setError("Structural Matrix Fallback Mode Active.");
                 }
             };
-
-            renderDiagram();
+            if (ref.current) {
+                ref.current.innerHTML = svg;
+                const svgElement = ref.current.querySelector('svg');
+                if (svgElement) {
+                    svgElement.style.maxWidth = '1000px';
+                    svgElement.style.height = 'auto';
+                    svgElement.style.display = 'block';
+                    svgElement.style.margin = '0 auto';
+                }
+            }
+        } catch (err) {
+            console.error("Mermaid Render Error:", err);
+            setError("Structural Matrix Fallback Mode Active.");
         }
+    };
+
+    renderDiagram();
+}
     }, [chart]);
 
-    if (error) {
-        return (
-            <div className="my-10 p-6 rounded-3xl bg-red-500/5 border border-red-500/10 text-xs font-mono text-neutral-400 max-w-full overflow-hidden shadow-2xl">
-                <div className="font-bold mb-4 flex items-center gap-2 text-red-500/80 uppercase tracking-widest text-[10px]">
-                    <Monitor size={14} /> Matrix Integrity Anomaly
-                </div>
-                <pre className="opacity-80 whitespace-pre-wrap text-[11px] bg-black/40 p-6 rounded-2xl border border-white/5 leading-relaxed overflow-x-auto custom-scrollbar">
-                    {chart}
-                </pre>
-            </div>
-        );
-    }
-
+if (error) {
     return (
-        <div className="my-16 p-6 md:p-16 lg:p-24 rounded-[3.5rem] bg-neutral-900/40 border border-neutral-800 shadow-[20px_20px_60px_#050505,-20px_-20px_60px_#151515] flex flex-col items-center overflow-visible min-h-[500px]">
-
-            <div className="w-full overflow-x-auto overflow-y-visible py-12 custom-scrollbar flex justify-center">
-                <div
-                    ref={ref}
-                    className="mermaid-render text-center transition-opacity duration-700 w-full flex justify-center items-center"
-                />
+        <div className="my-10 p-6 rounded-3xl bg-red-500/5 border border-red-500/10 text-xs font-mono text-neutral-400 max-w-full overflow-hidden shadow-2xl">
+            <div className="font-bold mb-4 flex items-center gap-2 text-red-500/80 uppercase tracking-widest text-[10px]">
+                <Monitor size={14} /> Matrix Integrity Anomaly
             </div>
+            <pre className="opacity-80 whitespace-pre-wrap text-[11px] bg-black/40 p-6 rounded-2xl border border-white/5 leading-relaxed overflow-x-auto custom-scrollbar">
+                {chart}
+            </pre>
         </div>
     );
+}
+
+return (
+    <div className="my-16 p-6 md:p-16 lg:p-24 rounded-[3.5rem] bg-neutral-900/40 border border-neutral-800 shadow-[20px_20px_60px_#050505,-20px_-20px_60px_#151515] flex flex-col items-center overflow-visible min-h-[500px]">
+
+        <div className="w-full overflow-x-auto overflow-y-visible py-12 custom-scrollbar flex justify-center">
+            <div
+                ref={ref}
+                className="mermaid-render text-center transition-opacity duration-700 w-full flex justify-center items-center"
+            />
+        </div>
+    </div>
+);
 };
 
 export function StudyMode() {
