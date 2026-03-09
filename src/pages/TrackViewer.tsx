@@ -96,23 +96,25 @@ export function TrackViewer() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-20">
-            <header className="border-b border-neutral-800 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="flex-1">
-                    <Badge variant="indigo" className="mb-4">{track.is_creator ? "Admin View / Managed Track" : "AI Optimized Curriculum"}</Badge>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">{track.title}</h1>
-                        {track.is_creator && <Badge variant="success">Creator</Badge>}
+            <header className="border-b border-neutral-800 pb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8 text-center sm:text-left">
+                <div className="flex-1 space-y-4">
+                    <Badge variant="indigo" className="mb-2 px-3 py-1 uppercase tracking-widest text-[10px] mx-auto sm:mx-0">{track.is_creator ? "Admin View / Managed Track" : "AI Optimized Curriculum"}</Badge>
+                    <div className="space-y-4 sm:space-y-2">
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-3">
+                            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight italic">{track.title}</h1>
+                            {track.is_creator && <Badge variant="success" className="h-6">Creator</Badge>}
+                        </div>
+                        <p className="text-neutral-400 max-w-2xl text-sm md:text-lg leading-relaxed mx-auto sm:mx-0">{track.description}</p>
                     </div>
-                    <p className="text-neutral-400 max-w-2xl leading-relaxed">{track.description}</p>
                 </div>
                 {!track.is_creator && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4 w-full lg:w-auto">
                         <div className="text-right hidden sm:block">
-                            <p className="text-xs text-neutral-500 uppercase tracking-widest font-bold">Progress</p>
-                            <p className="text-white font-mono">{progress}% Complete</p>
+                            <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-black">Progress</p>
+                            <p className="text-white font-mono text-xl">{progress}%</p>
                         </div>
-                        <div className="w-[1px] h-8 bg-neutral-800 hidden sm:block mx-2" />
-                        <Button variant="primary">Resume Learning</Button>
+                        <div className="w-[1px] h-12 bg-neutral-800 hidden sm:block mx-2" />
+                        <Button variant="primary" size="lg" className="w-full lg:w-auto px-10 h-14 font-bold shadow-xl shadow-indigo-500/10">Resume Learning</Button>
                     </div>
                 )}
             </header>
@@ -211,37 +213,38 @@ function AdminCandidateSection({ trackId }: { trackId: string }) {
     if (!candidates || candidates.length === 0) return null;
 
     return (
-        <Card className="border-indigo-500/20 bg-indigo-500/5 mb-8">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Users size={20} className="text-indigo-400" /> Enrollment Roster
+        <Card className="border-indigo-500/20 bg-indigo-500/5 mb-8 p-6 md:p-10">
+            <h3 className="text-xl font-black text-white mb-8 flex items-center justify-center sm:justify-start gap-3 italic uppercase tracking-tighter">
+                <Users size={24} className="text-indigo-400" /> Enrollment Roster
             </h3>
-            <div className="grid gap-3">
+            <div className="grid gap-6">
                 {candidates.map((c: any) => (
-                    <div key={c.id} className="flex flex-col md:flex-row items-center justify-between p-4 rounded-xl bg-neutral-900 border border-neutral-800">
+                    <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 rounded-2xl bg-neutral-900/50 border border-neutral-800 hover:border-indigo-500/20 transition-all gap-6">
                         <div className="flex items-center gap-4 flex-1">
-                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold border border-indigo-500/20">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-black border border-indigo-500/20 shadow-lg shrink-0">
                                 {c.name.charAt(0)}
                             </div>
-                            <div>
-                                <h4 className="font-bold text-white leading-none mb-1">{c.name}</h4>
-                                <div className="flex items-center gap-3 text-xs text-neutral-500">
-                                    <span className="flex items-center gap-1 font-mono text-[10px]">{c.email}</span>
-                                    {c.phone && <span className="flex items-center gap-1"><Phone size={12} /> {c.phone}</span>}
+                            <div className="min-w-0">
+                                <h4 className="font-bold text-lg text-white leading-none mb-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{c.name}</h4>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500">
+                                    <span className="font-mono text-[10px] break-all">{c.email}</span>
+                                    {c.phone && <span className="flex items-center gap-1.5"><Phone size={12} /> {c.phone}</span>}
                                     {c.resume && (
-                                        <a href={`${BASE_URL}${c.resume}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300">
+                                        <a href={`${BASE_URL}${c.resume}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-bold">
                                             <FileText size={12} /> CV
                                         </a>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-6 mt-4 md:mt-0">
-                            <div className="text-right">
+                        <div className="flex items-center gap-6 w-full sm:w-auto pt-4 sm:pt-0 border-t border-neutral-800 sm:border-0">
+                            <div className="flex-1 sm:text-right space-y-2">
+                                <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Mastery Level</div>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${c.progress}%` }} />
+                                    <div className="w-full sm:w-32 h-2 bg-neutral-800/80 rounded-full overflow-hidden shadow-inner flex-1">
+                                        <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style={{ width: `${c.progress}%` }} />
                                     </div>
-                                    <span className="text-sm font-mono text-white font-bold">{c.progress}%</span>
+                                    <span className="text-base font-mono text-white font-black tabular-nums">{c.progress}%</span>
                                 </div>
                             </div>
                         </div>

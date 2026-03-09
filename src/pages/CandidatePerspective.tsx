@@ -11,7 +11,9 @@ import {
     Monitor,
     Sparkles,
     Activity,
-    Shield
+    Shield,
+    Menu,
+    X
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -91,6 +93,7 @@ export default function CandidatePerspective() {
     const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'assessment'>('overview');
     const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
     const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const { data: dossier, isLoading } = useQuery({
         queryKey: ['dossier', trackId, learnerId],
@@ -105,12 +108,14 @@ export default function CandidatePerspective() {
         setSelectedLessonId(id);
         setSelectedModuleId(null);
         setViewMode('lesson');
+        setIsMobileSidebarOpen(false);
     };
 
     const handleAssessmentSelect = (moduleId: string) => {
         setSelectedModuleId(moduleId);
         setSelectedLessonId(null);
         setViewMode('assessment');
+        setIsMobileSidebarOpen(false);
     };
 
     if (isLoading) return (
@@ -126,10 +131,27 @@ export default function CandidatePerspective() {
     );
 
     return (
-        <div className="min-h-screen bg-[#050505] text-neutral-200 selection:bg-blue-500/30 flex">
-            {/* Sidebar Perspective Control */}
-            <aside className="w-80 border-r border-neutral-800 bg-[#080808] flex flex-col sticky top-0 h-screen">
-                <div className="p-8 border-b border-neutral-800 space-y-4">
+        <div className="min-h-screen bg-[#050505] text-neutral-200 selection:bg-blue-500/30 flex relative">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] lg:hidden"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                />
+            )}
+
+            <aside className={`
+                w-80 border-r border-neutral-800 bg-[#080808] flex flex-col fixed inset-y-0 left-0 z-[70] h-full
+                transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0
+                ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <div className="p-8 border-b border-neutral-800 space-y-4 relative">
+                    <button
+                        onClick={() => setIsMobileSidebarOpen(false)}
+                        className="absolute top-4 right-4 p-2 text-neutral-500 lg:hidden"
+                    >
+                        <X size={20} />
+                    </button>
                     <button
                         onClick={() => navigate(-1)}
                         className="flex items-center gap-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors uppercase tracking-widest"
@@ -206,9 +228,16 @@ export default function CandidatePerspective() {
             </aside>
 
             {/* Content Area */}
-            <main className="flex-1 flex flex-col h-screen overflow-hidden">
-                <header className="p-8 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-20 transition-all duration-500">
-                    <div className="flex items-center gap-6">
+            <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                <header className="px-6 py-6 md:p-8 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-20 transition-all duration-500">
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <button
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="p-2.5 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white lg:hidden"
+                        >
+                            <Menu size={20} />
+                        </button>
+
                         {viewMode !== 'overview' && (
                             <button
                                 onClick={() => setViewMode('overview')}
@@ -240,7 +269,7 @@ export default function CandidatePerspective() {
                     )}
                 </header>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-12 lg:p-24 bg-[#050505]">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 lg:p-24 bg-[#050505]">
                     <div className="max-w-4xl mx-auto">
                         <AnimatePresence mode="wait">
                             {viewMode === 'overview' ? (
@@ -262,7 +291,7 @@ export default function CandidatePerspective() {
                                             </div>
                                         </div>
 
-                                        <Card className="p-10 bg-blue-500/5 border-blue-500/20 border-dashed rounded-[3rem] relative overflow-hidden group">
+                                        <Card className="p-6 md:p-10 bg-blue-500/5 border-blue-500/20 border-dashed rounded-[2rem] md:rounded-[3rem] relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-1000">
                                                 <Sparkles size={80} />
                                             </div>
@@ -279,7 +308,7 @@ export default function CandidatePerspective() {
 
                                     <div className="space-y-6">
                                         {dossier.modules.map((module: any, mIdx: number) => (
-                                            <div key={module.id} className="relative group p-10 rounded-[3rem] bg-neutral-900/30 border border-neutral-800 hover:border-blue-500/20 transition-all duration-700">
+                                            <div key={module.id} className="relative group p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-neutral-900/30 border border-neutral-800 hover:border-blue-500/20 transition-all duration-700">
                                                 <div className="absolute top-0 left-10 -translate-y-1/2 bg-[#050505] px-4 py-1 border border-neutral-800 rounded-full">
                                                     <span className="text-[10px] font-black font-mono text-neutral-600 uppercase tracking-widest italic">Node {mIdx + 1}</span>
                                                 </div>
@@ -301,7 +330,7 @@ export default function CandidatePerspective() {
                                                             <button
                                                                 key={lesson.id}
                                                                 onClick={() => handleLessonSelect(lesson.id)}
-                                                                className="p-8 rounded-[2rem] bg-black/40 border border-white/5 hover:border-blue-500/30 hover:bg-neutral-900/50 transition-all duration-500 text-left group/lesson relative overflow-hidden"
+                                                                className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-black/40 border border-white/5 hover:border-blue-500/30 hover:bg-neutral-900/50 transition-all duration-500 text-left group/lesson relative overflow-hidden"
                                                             >
                                                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/lesson:opacity-30 transition-opacity">
                                                                     <Shield size={40} className="text-blue-500" />
@@ -418,7 +447,7 @@ export default function CandidatePerspective() {
                                             <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
                                                 Node Evaluation Audit <ChevronRight size={10} /> {currentModule?.title}
                                             </p>
-                                            <h2 className="text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Technical Evaluation</h2>
+                                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Technical Evaluation</h2>
                                             <div className="flex items-center gap-4 pt-2">
                                                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
                                                     {currentModule?.assessment?.attempts.length || 0} Attempts Recorded
@@ -460,7 +489,7 @@ export default function CandidatePerspective() {
                                                 </div>
                                             </div>
 
-                                            <Card className="p-8 bg-neutral-900/30 border-neutral-800 rounded-[2.5rem] space-y-10">
+                                            <Card className="p-6 md:p-8 bg-neutral-900/30 border-neutral-800 rounded-[2rem] md:rounded-[2.5rem] space-y-10">
                                                 {/* AI Feedback */}
                                                 <div className="space-y-4">
                                                     <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">

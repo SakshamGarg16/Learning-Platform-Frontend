@@ -78,13 +78,13 @@ export function Dashboard() {
 
     return (
         <div className="space-y-12 max-w-6xl mx-auto pb-20">
-            <header className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome back, Operator</h1>
-                    <p className="text-neutral-400">Your personalized knowledge ecosystem is ready.</p>
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="space-y-1">
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Welcome back, Operator</h1>
+                    <p className="text-neutral-400 text-sm md:text-base">Your personalized knowledge ecosystem is ready.</p>
                 </div>
-                <Link to="/curriculum">
-                    <Button leftIcon={<Sparkles size={18} />}>Generate New Track</Button>
+                <Link to="/curriculum" className="w-full sm:w-auto">
+                    <Button leftIcon={<Sparkles size={18} />} className="w-full sm:w-auto px-8 py-6 sm:py-3">Generate New Track</Button>
                 </Link>
             </header>
 

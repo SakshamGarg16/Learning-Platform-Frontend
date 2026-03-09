@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Link as LinkIcon, Check, ArrowRight, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Link as LinkIcon, Check, ArrowRight, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -55,26 +55,29 @@ export function CurriculumBuilder() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-12 pb-20">
-            <header>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
-                    <Sparkles className="text-indigo-400" /> AI Curriculum Engine
-                </h1>
-                <p className="text-neutral-400">Generate rigorous, dynamic learning tracks or manage your existing fleet.</p>
+            <header className="space-y-4">
+                <Badge variant="indigo" className="px-3 py-1 uppercase tracking-widest text-[10px]">AI Integration Hub</Badge>
+                <div>
+                    <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2 flex items-baseline gap-3">
+                        Curriculum <span className="text-indigo-500 italic">Engine</span>
+                    </h1>
+                    <p className="text-neutral-400 text-sm md:text-lg">Generate rigorous, dynamic learning tracks or manage your existing fleet.</p>
+                </div>
             </header>
-
-            <Card className="border-indigo-500/10 bg-indigo-500/5">
-                <form onSubmit={handleGenerate} className="flex flex-col md:flex-row gap-4 items-end">
+            <Card className="border-indigo-500/10 bg-indigo-500/5 p-6 md:p-10">
+                <form onSubmit={handleGenerate} className="flex flex-col md:flex-row gap-6 items-end">
                     <div className="flex-1 w-full">
                         <Input
-                            label="New Learning Topic"
+                            label="What do you want to master today?"
                             placeholder="e.g. Advanced Django, React Server Components..."
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
                             disabled={isGenerating}
+                            className="bg-neutral-900 border-neutral-800 focus:border-indigo-500 transition-all h-14"
                         />
                     </div>
-                    <Button type="submit" isLoading={isGenerating} className="w-full md:w-auto px-8" rightIcon={!isGenerating && <ArrowRight size={18} />}>
-                        Generate & Deploy
+                    <Button type="submit" isLoading={isGenerating} className="w-full md:w-auto px-10 h-14 font-bold text-lg" rightIcon={!isGenerating && <ArrowRight size={18} />}>
+                        Deploy Track
                     </Button>
                 </form>
             </Card>
@@ -82,16 +85,16 @@ export function CurriculumBuilder() {
             <AnimatePresence>
                 {generatedSyllabus && !isGenerating && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className="space-y-6"
                     >
-                        <Card className="border-emerald-500/30 bg-emerald-500/5">
-                            <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-                                <div>
-                                    <Badge variant="success" className="mb-3">New Track Successfully Deployed</Badge>
-                                    <h2 className="text-2xl font-bold text-white mb-1">{generatedSyllabus.title}</h2>
-                                    <p className="text-neutral-400">{generatedSyllabus.description}</p>
+                        <Card className="border-emerald-500/30 bg-emerald-500/5 p-8 md:p-12 relative overflow-hidden group">
+                            <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
+                                <div className="space-y-3 flex-1">
+                                    <Badge variant="success" className="mb-2">New Track Successfully Deployed</Badge>
+                                    <h2 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight">{generatedSyllabus.title}</h2>
+                                    <p className="text-neutral-400 leading-relaxed max-w-2xl">{generatedSyllabus.description}</p>
                                 </div>
 
                                 {isAdmin && (
