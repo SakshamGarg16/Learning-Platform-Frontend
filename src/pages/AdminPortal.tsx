@@ -85,7 +85,7 @@ export function AdminPortal() {
                                 onClick={() => {
                                     // Isolated Admin Registration Flow
                                     // Adding application=remlearner tells Authentik to use the RemLearner launch URL after flow completion
-                                    window.location.href = `http://localhost:9000/if/flow/admin-registration/?application=remlearner`;
+                                    window.location.href = import.meta.env.VITE_ADMIN_REGISTRATION_URL || `http://localhost:9000/if/flow/admin-registration/?application=remlearner`;
                                 }}
                                 variant="secondary"
                                 className="w-full py-5 text-xs font-black tracking-[0.2em] rounded-2xl border-neutral-800 text-red-400/70 hover:text-white hover:bg-red-500/10 transition-all uppercase"

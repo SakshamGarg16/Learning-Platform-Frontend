@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { api, API_URL } from '../lib/api';
+import { api, BASE_URL } from '../lib/api';
 
 export interface User {
     id: string;
@@ -52,13 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = () => {
         // Redirect to Django OIDC entry point
-        window.location.href = `${API_URL}/oidc/authenticate/`;
+        window.location.href = `${BASE_URL}/oidc/authenticate/`;
     };
 
     const logout = async () => {
         try {
             // Trigger Django Logout
-            window.location.href = `${API_URL}/oidc/logout/`;
+            window.location.href = `${BASE_URL}/oidc/logout/`;
             setUser(null);
         } catch (e) {
             console.error("Logout failed", e);

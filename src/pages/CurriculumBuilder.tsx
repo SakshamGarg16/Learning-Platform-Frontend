@@ -44,7 +44,8 @@ export function CurriculumBuilder() {
         }
     };
 
-    const shareLink = `http://localhost:5173/track/enroll/${generatedSyllabus?.id}`;
+    const appUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+    const shareLink = `${appUrl}/track/enroll/${generatedSyllabus?.id}`;
 
     const copyToClipboard = (link?: string) => {
         navigator.clipboard.writeText(link || shareLink);
@@ -140,7 +141,7 @@ export function CurriculumBuilder() {
                                         <div className="hidden sm:block text-right">
                                             <p className="text-xs text-neutral-500 uppercase font-bold">Enrollment Link</p>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(`http://localhost:5173/track/enroll/${track.id}`); }}
+                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(`${appUrl}/track/enroll/${track.id}`); }}
                                                 className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 mt-1"
                                             >
                                                 Copy Link <LinkIcon size={12} />

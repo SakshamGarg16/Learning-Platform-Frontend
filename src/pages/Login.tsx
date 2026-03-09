@@ -82,7 +82,7 @@ export function Login() {
                         <Button
                             onClick={() => {
                                 // Appending application=remlearner ensures Authentik redirects back to the app context after signup
-                                window.location.href = `http://localhost:9000/if/flow/registration/?application=remlearner`;
+                                window.location.href = import.meta.env.VITE_REGISTRATION_URL || `http://localhost:9000/if/flow/registration/?application=remlearner`;
                             }}
                             variant="secondary"
                             className="w-full py-4 text-sm font-bold tracking-widest rounded-xl border-neutral-700"

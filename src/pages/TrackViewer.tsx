@@ -1,6 +1,6 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, BASE_URL } from '../lib/api';
 import { BookOpen, Play, ChevronRight, Lock, CheckCircle2, PlayCircle, Sparkles, Users, Phone, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -228,7 +228,7 @@ function AdminCandidateSection({ trackId }: { trackId: string }) {
                                     <span className="flex items-center gap-1 font-mono text-[10px]">{c.email}</span>
                                     {c.phone && <span className="flex items-center gap-1"><Phone size={12} /> {c.phone}</span>}
                                     {c.resume && (
-                                        <a href={`http://localhost:8000${c.resume}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300">
+                                        <a href={`${BASE_URL}${c.resume}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300">
                                             <FileText size={12} /> CV
                                         </a>
                                     )}
