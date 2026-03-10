@@ -3,9 +3,11 @@ import { Zap, ShieldAlert, KeyRound } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export function AdminPortal() {
     const { login } = useAuth();
+    const navigate = useNavigate();
 
     return (
         <div className="min-h-screen bg-neutral-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -83,9 +85,8 @@ export function AdminPortal() {
 
                             <Button
                                 onClick={() => {
-                                    // Isolated Admin Registration Flow
-                                    // Adding application=remlearner tells Authentik to use the RemLearner launch URL after flow completion
-                                    window.location.href = import.meta.env.VITE_ADMIN_REGISTRATION_URL || `http://localhost:9000/if/flow/admin-registration/?application=remlearner`;
+                                    // Isolated Admin Registration Flow (Internal)
+                                    navigate('/admin/signup');
                                 }}
                                 variant="secondary"
                                 className="w-full py-5 text-xs font-black tracking-[0.2em] rounded-2xl border-neutral-800 text-red-400/70 hover:text-white hover:bg-red-500/10 transition-all uppercase"

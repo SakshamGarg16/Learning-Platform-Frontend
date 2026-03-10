@@ -14,6 +14,8 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: () => void;
+    loginWithCredentials: (email: string, password: string) => Promise<void>;
+    signup: (data: any) => Promise<void>;
     logout: () => void;
 }
 
@@ -51,15 +53,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = () => {
-        // Redirect to Django OIDC entry point
+        // Redirect to Django OIDC entry point (Old way)
         window.location.href = `${BASE_URL}/oidc/authenticate/`;
+    };
+
+    const loginWithCredentials = async (email: string, password: string) => {
+        setIsLoading(true);
+        try {
+            await api.post('/auth/login/', { email, password });
+            await checkAuthStatus();
+        } catch (e: any) {
+            console.error("Login failed", e);
+            const detail = e.response?.data?.details || e.response?.data?.error || "Login failed";
+            throw new Error(detail);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const signup = async (data: any) => {
+        try {
+            await api.post('/auth/signup/', data);
+        } catch (e) {
+            console.error("Signup failed", e);
+            throw e;
+        }
     };
 
     const logout = async () => {
         try {
-            // Trigger Django Logout
-            window.location.href = `${BASE_URL}/oidc/logout/`;
+            // Use our new API logout which clears the Django session
+            await api.post('/auth/logout/');
             setUser(null);
+            // Optionally redirect to login
+            window.location.href = '/login';
         } catch (e) {
             console.error("Logout failed", e);
         }
@@ -71,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isAuthenticated: !!user,
             isLoading,
             login,
+            loginWithCredentials,
+            signup,
             logout
         }}>
             {children}

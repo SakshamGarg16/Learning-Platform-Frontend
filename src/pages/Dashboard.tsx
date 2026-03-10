@@ -6,8 +6,12 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { PlayCircle, Award, CheckCircle2, BookOpen, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Dashboard() {
+    const { user } = useAuth();
+    const firstName = user?.name?.split(' ')[0] || 'Operator';
+
     // Fetch data from Django API
     const { data: readinessData } = useQuery({
         queryKey: ['readiness'],
@@ -80,7 +84,7 @@ export function Dashboard() {
         <div className="space-y-12 max-w-6xl mx-auto pb-20">
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Welcome back, Operator</h1>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Welcome back, {firstName}</h1>
                     <p className="text-neutral-400 text-sm md:text-base">Your personalized knowledge ecosystem is ready.</p>
                 </div>
                 <Link to="/curriculum" className="w-full sm:w-auto">

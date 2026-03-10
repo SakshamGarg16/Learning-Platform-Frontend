@@ -1,23 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Shield, ArrowLeft } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-export function Login() {
-    const { loginWithCredentials, isAuthenticated } = useAuth();
+interface SignupProps {
+    forceAdmin?: boolean;
+}
+
+export function Signup({ forceAdmin = false }: SignupProps) {
+    const { signup, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const successMessage = (location.state as any)?.message;
-
+    
     // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
@@ -25,16 +22,28 @@ export function Login() {
         }
     }, [isAuthenticated, navigate]);
 
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [isAdmin] = useState(forceAdmin);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setIsLoading(true);
 
         try {
-            await loginWithCredentials(email, password);
-            navigate('/', { replace: true });
+            await signup({
+                email,
+                password,
+                full_name: fullName,
+                is_admin: isAdmin
+            });
+            navigate('/login', { state: { message: 'Account created! Please log in.' } });
         } catch (err: any) {
-            setError(err.message || 'Invalid credentials or authentication error.');
+            setError(err.response?.data?.error || 'Failed to create account. Ensure backend has API Token configured.');
         } finally {
             setIsLoading(false);
         }
@@ -54,43 +63,31 @@ export function Login() {
                     className="flex justify-center"
                 >
                     <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 mb-6">
-                        <Zap size={32} />
+                        <UserPlus size={32} />
                     </div>
                 </motion.div>
 
                 <motion.h2
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
                     className="mt-2 text-center text-3xl font-extrabold tracking-tight text-white mb-2"
                 >
-                    Factory Authorization
+                    Create Account
                 </motion.h2>
                 <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
                     className="text-center text-sm text-neutral-400 mb-8"
                 >
-                    RemLearners Intelligent Access Gateway
+                    Join the RemLearners ecosystem.
                 </motion.p>
             </div>
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
                 className="mt-4 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
             >
                 <Card className="py-8 px-4 sm:px-10">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {successMessage && (
-                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm flex items-center">
-                                <ShieldCheck size={16} className="mr-2" />
-                                {successMessage}
-                            </div>
-                        )}
-                        
                         {error && (
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
                                 {error}
@@ -99,10 +96,21 @@ export function Login() {
 
                         <div className="space-y-4">
                             <div className="relative">
+                                <User className="absolute left-3 top-3.5 text-neutral-500" size={18} />
+                                <Input
+                                    placeholder="Full Name"
+                                    className="pl-10"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="relative">
                                 <Mail className="absolute left-3 top-3.5 text-neutral-500" size={18} />
                                 <Input
                                     type="email"
-                                    placeholder="operator@remcloud.io"
+                                    placeholder="Email Address"
                                     className="pl-10"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -114,51 +122,38 @@ export function Login() {
                                 <Lock className="absolute left-3 top-3.5 text-neutral-500" size={18} />
                                 <Input
                                     type="password"
-                                    placeholder="••••••••"
+                                    placeholder="Password"
                                     className="pl-10"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
                             </div>
+
+                            {/* Admin Registration Notification - Only shown if forceAdmin is true */}
+                            {forceAdmin && (
+                                <div className="flex items-center space-x-3 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                                    <Shield size={14} className="text-red-400" />
+                                    <span className="text-xs font-bold text-red-200 uppercase tracking-wider">
+                                        Administrative Privileges Enabled
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         <Button
                             type="submit"
-                            className="w-full py-6 text-lg tracking-wide rounded-xl shadow-lg shadow-indigo-500/20 group"
+                            className={`w-full py-6 text-lg font-bold rounded-xl shadow-lg ${forceAdmin ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20' : 'shadow-indigo-500/20'}`}
                             disabled={isLoading}
                         >
-                            {isLoading ? 'Verifying...' : (
-                                <span className="flex items-center justify-center">
-                                    Authorize Access
-                                    <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
-                                </span>
-                            )}
+                            {isLoading ? 'Creating...' : forceAdmin ? 'Initialize Admin Profile' : 'Sign Up'}
                         </Button>
 
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-neutral-800"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-neutral-900 px-2 text-neutral-500 font-bold tracking-widest">New Operator?</span>
-                            </div>
-                        </div>
-
-                        <Link to="/signup" className="block">
-                            <Button
-                                variant="secondary"
-                                type="button"
-                                className="w-full py-4 text-sm font-bold tracking-widest rounded-xl border-neutral-700"
-                            >
-                                Request New Credentials
-                            </Button>
-                        </Link>
-
-                        <div className="pt-4 border-t border-neutral-800 text-center">
-                            <p className="text-[10px] text-neutral-600 uppercase tracking-[0.2em] font-bold">
-                                Protected by RemCloud Gateway
-                            </p>
+                        <div className="text-center mt-6">
+                            <Link to="/login" className="text-neutral-500 hover:text-indigo-400 text-sm flex items-center justify-center transition-colors">
+                                <ArrowLeft size={14} className="mr-2" />
+                                Back to Login
+                            </Link>
                         </div>
                     </form>
                 </Card>

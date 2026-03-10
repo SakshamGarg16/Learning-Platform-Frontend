@@ -9,6 +9,7 @@ import { ReadinessScorecard } from './pages/ReadinessScorecard';
 import { StudyMode } from './pages/StudyMode';
 import { AssessmentMode } from './pages/AssessmentMode';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
 import { Onboarding } from './pages/Onboarding';
 import { AdminPortal } from './pages/AdminPortal';
 import CandidatePerspective from './pages/CandidatePerspective';
@@ -51,7 +52,9 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/admin" element={<AdminPortal />} />
+            <Route path="/admin/signup" element={<Signup forceAdmin={true} />} />
             <Route path="/onboarding" element={
               <useAuth.Context.Consumer>
                 {(auth) => {
