@@ -73,7 +73,7 @@ export function Onboarding() {
                 className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
             >
                 <Card className="p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" aria-label="onboarding-form">
                         <Input
                             label="Full Name"
                             value={formData.full_name}
