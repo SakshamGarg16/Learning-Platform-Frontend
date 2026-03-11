@@ -103,4 +103,49 @@ describe('CurriculumBuilder Component', () => {
         expect(screen.getByText('45%')).toBeInTheDocument();
     });
   });
+
+  test('handles track generation failure', async () => {
+    (api.post as any).mockRejectedValueOnce(new Error('Generation Error'));
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    renderComponent();
+
+    const input = screen.getByPlaceholderText(/e.g. Advanced Django/i);
+    fireEvent.change(input, { target: { value: 'Python' } });
+    fireEvent.click(screen.getByRole('button', { name: /Deploy Track/i }));
+
+    await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Failed to generate tracking curriculum'));
+    });
+  });
+
+  test('copies enrollment link to clipboard', async () => {
+    const mockWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: mockWriteText,
+      },
+    });
+
+    (api.get as any).mockResolvedValue({ 
+      data: [{ id: '1', title: 'T1', is_creator: true, created_at: new Date().toISOString() }] 
+    });
+
+    renderComponent();
+
+    await screen.findByText('T1');
+    const copyBtn = await screen.findByText(/Copy Link/i);
+    fireEvent.click(copyBtn);
+
+    expect(mockWriteText).toHaveBeenCalledWith(expect.stringContaining('/track/enroll/1'));
+  });
+
+  test('shows empty tracks message when no tracks exist', async () => {
+    (api.get as any).mockResolvedValue({ data: [] });
+    renderComponent();
+
+    await waitFor(() => {
+        expect(screen.getByText(/No tracks have been deployed yet/i)).toBeInTheDocument();
+    });
+  });
 });

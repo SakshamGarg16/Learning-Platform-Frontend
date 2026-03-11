@@ -138,4 +138,85 @@ describe('CandidatePerspective Component', () => {
         expect(screen.getByText(/Audit Status: DEFICIENCY/i)).toBeInTheDocument();
     });
   });
+
+  test('handles mermaid render error fallback', async () => {
+    // Mock mermaid.render to throw
+    const mermaid = (await import('mermaid')).default;
+    vi.mocked(mermaid.render).mockRejectedValueOnce(new Error('Mermaid Error'));
+
+    // A dossier with a lesson containing mermaid
+    const mDossier = {
+        ...mockDossier,
+        modules: [{
+            ...mockDossier.modules[0],
+            lessons: [{ id: 'l1', title: 'UniqueLessonTitle', content: 'graph TD\n  A[Start Node] --> B[End Node]\n  B --> C[More Nodes]' }]
+        }]
+    };
+    (api.get as any).mockResolvedValue({ data: mDossier });
+    renderComponent('t1', 'c1');
+
+    const lessonBtns = await screen.findAllByRole('button', { name: /UniqueLessonTitle/i });
+    fireEvent.click(lessonBtns[0]);
+
+    await waitFor(() => {
+        expect(screen.getByText(/Matrix Integrity Anomaly/i)).toBeInTheDocument();
+    });
+  });
+
+  test('switches back to architectural perspective from lesson view', async () => {
+    (api.get as any).mockResolvedValue({ data: mockDossier });
+    renderComponent('t1', 'c1');
+
+    const lessonBtns = await screen.findAllByRole('button', { name: /Lesson 1/i });
+    fireEvent.click(lessonBtns[0]);
+    
+    // Header should show lesson title
+    expect(await screen.findByRole('heading', { name: /Lesson 1/i })).toBeInTheDocument();
+
+    const backBtn = await screen.findByText(/Return to Map/i);
+    fireEvent.click(backBtn);
+
+    await waitFor(() => {
+        expect(screen.queryByText(/Return to Map/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/Academic Map/i)).toBeInTheDocument();
+    });
+  });
+
+  test('shows divergence for multi-select partial answers in audit', async () => {
+    const multiDossier = {
+        ...mockDossier,
+        modules: [{
+            ...mockDossier.modules[0],
+            assessment: {
+                questions: [{ question: 'MultiQ', options: ['O1', 'O2', 'O3'], correct_answer: [0, 1] }],
+                attempts: [{
+                    id: 'att-m',
+                    passed: false,
+                    score: 50,
+                    answers: { "0": [0] }, // Partial, should be [0, 1]
+                    ai_feedback: 'Partial',
+                    created_at: new Date().toISOString()
+                }]
+            }
+        }]
+    };
+    (api.get as any).mockResolvedValue({ data: multiDossier });
+    renderComponent('t1', 'c1');
+
+    const auditBtn = await screen.findByText(/View Evaluation/i);
+    fireEvent.click(auditBtn);
+
+    // Wait for the audit view to render
+    expect(await screen.findByText(/Technical Evaluation/i)).toBeInTheDocument();
+
+    await waitFor(async () => {
+        const divergenceBadges = screen.getAllByText(/Divergence/i);
+        expect(divergenceBadges.length).toBeGreaterThan(0);
+        // Check if it lists the marked answer O1 (should be in option grid AND audit trace)
+        const o1Elements = await screen.findAllByText(/O1/i);
+        expect(o1Elements.length).toBeGreaterThan(0);
+        // Check if it lists the expected key badge
+        expect(screen.getByText(/EXPECTED KEY/i)).toBeInTheDocument();
+    });
+  });
 });
