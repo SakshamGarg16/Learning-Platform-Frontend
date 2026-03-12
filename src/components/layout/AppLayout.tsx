@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Map, Zap, ShieldCheck, LogOut, Menu, X } from 'lucide-react';
+import { BookOpen, Map, Zap, ShieldCheck, LogOut, Menu, X, Compass } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -10,6 +10,7 @@ const navItems = [
     { icon: Map, label: 'Dashboard', path: '/' },
     { icon: BookOpen, label: 'Curriculum', path: '/curriculum' },
     { icon: ShieldCheck, label: 'Readiness', path: '/readiness' },
+    { icon: Compass, label: 'Roadmaps', path: '/roadmaps' },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {

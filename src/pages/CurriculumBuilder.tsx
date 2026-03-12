@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link as LinkIcon, Check, ArrowRight, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Link as LinkIcon, Check, ArrowRight, Users, FileText, ChevronDown, ChevronUp, Compass } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -9,6 +9,22 @@ import { Badge } from '../components/ui/Badge';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+
+interface TrackItem {
+    id: string;
+    title: string;
+    description: string;
+    created_at: string;
+    is_creator?: boolean;
+    modules?: Array<{ id: string }>;
+}
+
+interface RoadmapItem {
+    id: string;
+    title: string;
+    description: string;
+    steps: Array<{ track?: { id: string } | null }>;
+}
 
 export function CurriculumBuilder() {
     const { user } = useAuth();
@@ -25,6 +41,19 @@ export function CurriculumBuilder() {
         queryKey: ['managed-tracks'],
         queryFn: async () => (await api.get('/tracks/')).data
     });
+
+    const { data: roadmaps } = useQuery({
+        queryKey: ['roadmaps'],
+        queryFn: async () => (await api.get('/roadmaps/')).data
+    });
+
+    const roadmapTrackIds = new Set(
+        ((roadmaps || []) as RoadmapItem[]).flatMap((roadmap) =>
+            roadmap.steps.map((step) => step.track?.id).filter(Boolean)
+        )
+    );
+    const standaloneManagedTracks = ((managedTracks || []) as TrackItem[]).filter((track) => !roadmapTrackIds.has(track.id));
+    const visibleRoadmaps = ((roadmaps || []) as RoadmapItem[]).filter((roadmap) => roadmap.steps.length > 0);
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -122,7 +151,7 @@ export function CurriculumBuilder() {
                 </h2>
 
                 <div className="grid gap-4">
-                    {managedTracks?.filter((t: any) => t.is_creator).map((track: any) => (
+                    {standaloneManagedTracks.filter((t: any) => t.is_creator).map((track: any) => (
                         <Card key={track.id} className="p-0 border-neutral-800 overflow-hidden">
                             <div
                                 className="p-6 flex items-center justify-between cursor-pointer hover:bg-neutral-900/50 transition-colors"
@@ -175,13 +204,39 @@ export function CurriculumBuilder() {
                         </Card>
                     ))}
 
-                    {(!managedTracks || managedTracks.length === 0) && (
+                    {(standaloneManagedTracks.filter((t: any) => t.is_creator).length === 0) && (
                         <div className="p-12 text-center bg-neutral-900/30 rounded-3xl border border-neutral-800 border-dashed">
                             <p className="text-neutral-500 italic">No tracks have been deployed yet.</p>
                         </div>
                     )}
                 </div>
             </section>
+
+            {visibleRoadmaps.length > 0 && (
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-sky-400" /> Roadmap-Managed Tracks
+                    </h2>
+                    <div className="grid gap-4">
+                        {visibleRoadmaps.map((roadmap) => (
+                            <Card key={roadmap.id} className="p-6 border-neutral-800 bg-sky-500/5">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <Badge variant="neutral" className="bg-sky-500/10 text-sky-300 border-sky-500/20 mb-3">
+                                            Roadmap Container
+                                        </Badge>
+                                        <h3 className="text-lg font-bold text-white">{roadmap.title}</h3>
+                                        <p className="text-sm text-neutral-400 mt-1">{roadmap.description}</p>
+                                    </div>
+                                    <Button variant="secondary" onClick={() => navigate(`/roadmaps/${roadmap.id}`)}>
+                                        Open Roadmap
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

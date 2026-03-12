@@ -1,7 +1,8 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, BASE_URL } from '../lib/api';
-import { BookOpen, Play, ChevronRight, Lock, CheckCircle2, PlayCircle, Sparkles, Users, Phone, FileText } from 'lucide-react';
+import { BookOpen, Play, ChevronRight, Lock, CheckCircle2, PlayCircle, Sparkles, Users, Phone, FileText, ArrowLeft, Compass } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
@@ -16,6 +17,12 @@ export function TrackViewer() {
         queryFn: async () => (await api.get(`/tracks/${trackId}/`)).data,
         enabled: !!trackId
     });
+
+    const { data: roadmaps } = useQuery({
+        queryKey: ['roadmaps'],
+        queryFn: async () => (await api.get('/roadmaps/')).data,
+    });
+    const parentRoadmap = roadmaps?.find((r: any) => r.steps.some((s: any) => s.track?.id === trackId));
 
     const enrollMutation = useMutation({
         mutationFn: async () => {
@@ -98,7 +105,17 @@ export function TrackViewer() {
         <div className="max-w-4xl mx-auto space-y-8 pb-20">
             <header className="border-b border-neutral-800 pb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-8 text-center sm:text-left">
                 <div className="flex-1 space-y-4">
-                    <Badge variant="indigo" className="mb-2 px-3 py-1 uppercase tracking-widest text-[10px] mx-auto sm:mx-0">{track.is_creator ? "Admin View / Managed Track" : "AI Optimized Curriculum"}</Badge>
+                    <div className="flex flex-col sm:flex-row items-center gap-6 mb-2">
+                        <Link
+                            to={parentRoadmap ? `/roadmaps/${parentRoadmap.id}` : '/'}
+                            className="flex items-center gap-2 text-neutral-500 hover:text-indigo-400 transition-colors font-black uppercase text-[10px] tracking-widest group"
+                        >
+                            {parentRoadmap ? <Compass size={18} className="group-hover:rotate-12 transition-transform" /> : <ArrowLeft size={18} />}
+                            {parentRoadmap ? 'Return to Roadmap' : 'Back to Dashboard'}
+                        </Link>
+                        <div className="hidden sm:block w-[1px] h-4 bg-neutral-800" />
+                        <Badge variant="indigo" className="px-3 py-1 uppercase tracking-widest text-[10px]">{track.is_creator ? "Admin View / Managed Track" : "AI Optimized Curriculum"}</Badge>
+                    </div>
                     <div className="space-y-4 sm:space-y-2">
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-3">
                             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight italic">{track.title}</h1>
@@ -203,6 +220,7 @@ export function TrackViewer() {
 }
 
 function AdminCandidateSection({ trackId }: { trackId: string }) {
+    const { user } = useAuth();
     const { data: candidates, isLoading } = useQuery({
         queryKey: ['candidates', trackId],
         queryFn: async () => (await api.get(`/tracks/${trackId}/enrolled_candidates/`)).data
@@ -210,7 +228,9 @@ function AdminCandidateSection({ trackId }: { trackId: string }) {
 
     if (isLoading) return <div className="p-4 text-xs text-indigo-400 animate-pulse">Loading candidate roster...</div>;
 
-    if (!candidates || candidates.length === 0) return null;
+    const filteredCandidates = candidates?.filter((c: any) => c.email !== user?.email);
+
+    if (!filteredCandidates || filteredCandidates.length === 0) return null;
 
     return (
         <Card className="border-indigo-500/20 bg-indigo-500/5 mb-8 p-6 md:p-10">
@@ -218,7 +238,7 @@ function AdminCandidateSection({ trackId }: { trackId: string }) {
                 <Users size={24} className="text-indigo-400" /> Enrollment Roster
             </h3>
             <div className="grid gap-6">
-                {candidates.map((c: any) => (
+                {filteredCandidates.map((c: any) => (
                     <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 rounded-2xl bg-neutral-900/50 border border-neutral-800 hover:border-indigo-500/20 transition-all gap-6">
                         <div className="flex items-center gap-4 flex-1">
                             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-black border border-indigo-500/20 shadow-lg shrink-0">

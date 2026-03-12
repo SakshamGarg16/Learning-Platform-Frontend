@@ -11,7 +11,8 @@ import {
     Maximize2,
     Minimize2,
     Monitor,
-    Sparkles
+    Sparkles,
+    Compass
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -111,6 +112,13 @@ export function StudyMode() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isFocused, setIsFocused] = useState(false);
+    
+    // Add roadmap sequence discovery
+    const { data: roadmaps } = useQuery({
+        queryKey: ['roadmaps'],
+        queryFn: async () => (await api.get('/roadmaps/')).data,
+    });
+    const parentRoadmap = roadmaps?.find((r: any) => r.steps.some((s: any) => s.track?.id === trackId));
 
     // 1. Fetch Lesson & Track Data
     const { data: lesson, isLoading: isLoadingLesson } = useQuery({
@@ -124,6 +132,17 @@ export function StudyMode() {
         queryFn: async () => (await api.get(`/tracks/${trackId}/`)).data,
         enabled: !!trackId
     });
+
+    // 1.5 Calculate Navigation Sequence
+    const flatItems = track?.modules?.reduce((acc: any[], module: any) => {
+        const lessons = (module.lessons || []).map((l: any) => ({ ...l, type: 'lesson', moduleId: module.id }));
+        const assessment = module.assessment ? { id: module.assessment.id, title: `Assessment: ${module.title}`, type: 'assessment', moduleId: module.id } : null;
+        return [...acc, ...lessons, ...(assessment ? [assessment] : [])];
+    }, []) || [];
+
+    const currentIndex = flatItems.findIndex((item: any) => item.id === lessonId);
+    const prevItem = flatItems[currentIndex - 1];
+    const nextItem = flatItems[currentIndex + 1];
 
     // 2. AI Content Generation Mutation
     const generateMutation = useMutation({
@@ -164,9 +183,12 @@ export function StudyMode() {
                 <div className="flex items-center gap-4">
                     <Link
                         to={`/track/enroll/${trackId}`}
-                        className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-colors group flex items-center gap-2"
                     >
                         <ArrowLeft size={20} />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">
+                            Back to Track
+                        </span>
                     </Link>
                     <div className="h-6 w-[1px] bg-neutral-800 mx-2" />
                     <div>
@@ -358,16 +380,34 @@ export function StudyMode() {
                                         variant="secondary"
                                         className="w-full sm:w-auto min-w-[140px]"
                                         leftIcon={<ChevronLeft size={18} />}
+                                        disabled={!prevItem}
+                                        onClick={() => {
+                                            if (prevItem.type === 'lesson') {
+                                                navigate(`/track/${trackId}/lesson/${prevItem.id}`);
+                                            } else {
+                                                navigate(`/track/${trackId}/module/${prevItem.moduleId}/assessment`);
+                                            }
+                                        }}
                                     >
                                         Previous
                                     </Button>
                                     <Button
                                         variant="primary"
                                         className="w-full sm:w-auto min-w-[140px]"
-                                        rightIcon={<ChevronRight size={18} />}
-                                        onClick={() => navigate(`/track/enroll/${trackId}`)}
+                                        rightIcon={nextItem ? <ChevronRight size={18} /> : <Compass size={18} />}
+                                        onClick={() => {
+                                            if (nextItem) {
+                                                if (nextItem.type === 'lesson') {
+                                                    navigate(`/track/${trackId}/lesson/${nextItem.id}`);
+                                                } else {
+                                                    navigate(`/track/${trackId}/module/${nextItem.moduleId}/assessment`);
+                                                }
+                                            } else {
+                                                navigate(`/track/enroll/${trackId}`);
+                                            }
+                                        }}
                                     >
-                                        Back to Track
+                                        {nextItem ? (nextItem.type === 'lesson' ? 'Next Lesson' : 'Start Assessment') : 'Complete Track'}
                                     </Button>
                                 </div>
                             </footer>

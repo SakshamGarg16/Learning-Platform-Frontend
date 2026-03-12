@@ -13,6 +13,7 @@ import { Signup } from './pages/Signup';
 import { Onboarding } from './pages/Onboarding';
 import { AdminPortal } from './pages/AdminPortal';
 import CandidatePerspective from './pages/CandidatePerspective';
+import { RoadmapExplorer } from './pages/RoadmapExplorer';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -72,6 +73,9 @@ function App() {
             <Route path="/track/:trackId/lesson/:lessonId" element={<ProtectedRoute><StudyMode /></ProtectedRoute>} />
             <Route path="/track/:trackId/module/:moduleId/assessment" element={<ProtectedRoute><AssessmentMode /></ProtectedRoute>} />
             <Route path="/readiness" element={<ProtectedRoute><AppLayout><ReadinessScorecard /></AppLayout></ProtectedRoute>} />
+            <Route path="/roadmaps" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
+            <Route path="/roadmaps/:id" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
+            <Route path="/roadmaps/share/:shareRoadmapId" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/track/:trackId/candidate/:learnerId/perspective" element={<AdminRoute><CandidatePerspective /></AdminRoute>} />
           </Routes>
         </BrowserRouter>
