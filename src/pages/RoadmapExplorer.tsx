@@ -47,6 +47,9 @@ interface Roadmap {
     steps: RoadmapStep[];
     is_enrolled: boolean;
     is_finalized: boolean;
+    created_by_info?: { id: string; name: string; email: string } | null;
+    enrollment_count?: number;
+    is_global_suggestion?: boolean;
 }
 
 export function RoadmapExplorer() {
@@ -66,6 +69,7 @@ export function RoadmapExplorer() {
     const [shareUrl, setShareUrl] = useState<string | null>(null);
 
     const isAdmin = user?.role === 'admin';
+    const isPlatformOwner = user?.email === 'admin@remlearner.com';
 
     const { data: roadmaps, isLoading: roadmapsLoading } = useQuery({
         queryKey: ['roadmaps'],
@@ -164,6 +168,74 @@ export function RoadmapExplorer() {
     if (roadmapsLoading || detailLoading) return <div className="flex items-center justify-center min-h-[60vh]"><RefreshCcw className="animate-spin text-indigo-500" size={32} /></div>;
 
     if (!activeRoadmapId) {
+        const suggestedRoadmaps = (roadmaps || []).filter((r) => r.is_global_suggestion && !isPlatformOwner);
+        const primaryRoadmaps = isPlatformOwner
+            ? (roadmaps || [])
+            : (roadmaps || []).filter((r) => !r.is_global_suggestion);
+        const platformOwnerRoadmaps = isPlatformOwner
+            ? primaryRoadmaps.filter((r) => r.created_by_info?.email === user?.email)
+            : [];
+        const otherPlatformRoadmaps = isPlatformOwner
+            ? primaryRoadmaps.filter((r) => r.created_by_info?.email !== user?.email)
+            : [];
+
+        const RoadmapCard = ({ roadmap }: { roadmap: Roadmap }) => (
+            <Card 
+                key={roadmap.id} 
+                onClick={() => navigate(`/roadmaps/${roadmap.id}`)}
+                className="p-6 md:p-8 border-neutral-800 bg-neutral-900/20 hover:bg-neutral-900/40 transition-all duration-700 cursor-pointer group rounded-[2.5rem] md:rounded-[3rem] relative overflow-hidden flex flex-col min-h-[340px] hover:border-indigo-500/30 hover:shadow-[0_32px_64px_-20px_rgba(99,102,241,0.15)]"
+            >
+                <div className="relative z-10 flex-1 space-y-5 min-w-0">
+                    <div className="flex items-start justify-between">
+                        <div className={`p-4 md:p-5 rounded-[1.75rem] transition-all duration-700 shrink-0 ${isAdmin ? 'bg-indigo-500 text-white shadow-[0_0_30px_rgba(99,102,241,0.4)]' : 'bg-neutral-800 text-neutral-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
+                            <Compass size={32} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex gap-2 shrink-0 pl-3">
+                            {roadmap.is_global_suggestion ? (
+                                <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-1 font-black text-[10px] tracking-widest uppercase">Suggested</Badge>
+                            ) : roadmap.is_finalized ? (
+                                <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-1 font-black text-[10px] tracking-widest uppercase">Operational</Badge>
+                            ) : (
+                                <Badge variant="neutral" className="bg-neutral-800 text-neutral-500 border-neutral-700 px-4 py-1 font-black text-[10px] tracking-widest uppercase">Drafting</Badge>
+                            )}
+                        </div>
+                    </div>
+                    <div className="space-y-4 min-w-0">
+                        <h3 className="text-xl md:text-2xl font-black text-white italic tracking-tight uppercase leading-[1.05] group-hover:text-indigo-400 transition-colors break-words">
+                            {roadmap.title}
+                        </h3>
+                        <p className="text-neutral-400 text-sm leading-7 font-medium italic opacity-80 line-clamp-3 break-words">
+                            {roadmap.description}
+                        </p>
+                        {isPlatformOwner && (
+                            <div className="space-y-1 text-xs text-neutral-400 min-w-0">
+                                <p className="break-words">Created by {roadmap.created_by_info?.name || 'Unknown'} ({roadmap.created_by_info?.email || 'n/a'})</p>
+                                <p>{roadmap.enrollment_count || 0} enrolled learners</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="relative z-10 mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-4 md:gap-6 text-neutral-500 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <Clock size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{new Date(roadmap.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Zap size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{roadmap.steps.length} Phases</span>
+                        </div>
+                    </div>
+                    <div className="self-start sm:self-auto p-3 md:p-4 rounded-2xl bg-neutral-800 text-neutral-400 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500 transform group-hover:translate-x-2">
+                        <ArrowLeft size={24} className="rotate-180" />
+                    </div>
+                </div>
+
+                <div className="absolute -bottom-24 -right-24 w-56 h-56 md:w-64 md:h-64 bg-indigo-500/5 blur-[80px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+            </Card>
+        );
+
         return (
             <div className="max-w-6xl mx-auto space-y-16 pb-24 px-4 pt-10">
                 <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
@@ -191,54 +263,38 @@ export function RoadmapExplorer() {
                     )}
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {roadmaps?.map((r) => (
-                        <Card 
-                            key={r.id} 
-                            onClick={() => navigate(`/roadmaps/${r.id}`)}
-                            className="p-10 border-neutral-800 bg-neutral-900/20 hover:bg-neutral-900/40 transition-all duration-700 cursor-pointer group rounded-[3.5rem] relative overflow-hidden flex flex-col justify-between h-[420px] hover:border-indigo-500/30 hover:shadow-[0_40px_80px_-20px_rgba(99,102,241,0.15)]"
-                        >
-                            <div className="relative z-10 space-y-6">
-                                <div className="flex items-start justify-between">
-                                    <div className={`p-6 rounded-3xl transition-all duration-700 ${isAdmin ? 'bg-indigo-500 text-white shadow-[0_0_30px_rgba(99,102,241,0.4)]' : 'bg-neutral-800 text-neutral-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
-                                        <Compass size={40} strokeWidth={2.5} />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {r.is_finalized ? (
-                                            <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-1 font-black text-[10px] tracking-widest uppercase">Operational</Badge>
-                                        ) : (
-                                            <Badge variant="neutral" className="bg-neutral-800 text-neutral-500 border-neutral-700 px-4 py-1 font-black text-[10px] tracking-widest uppercase">Drafting</Badge>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-tight group-hover:text-indigo-400 transition-colors">{r.title}</h3>
-                                    <p className="text-neutral-500 text-sm leading-relaxed font-medium italic opacity-70 line-clamp-2">{r.description}</p>
-                                </div>
-                            </div>
+                {!isPlatformOwner && suggestedRoadmaps.length > 0 && (
+                    <section className="space-y-6">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Compass className="text-emerald-400" /> Suggested Roadmaps
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {suggestedRoadmaps.map((r) => <RoadmapCard key={r.id} roadmap={r} />)}
+                        </div>
+                    </section>
+                )}
 
-                            <div className="relative z-10 pt-8 border-t border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-6 text-neutral-500">
-                                    <div className="flex items-center gap-2">
-                                        <Clock size={16} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Zap size={16} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{r.steps.length} Phases</span>
-                                    </div>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-neutral-800 text-neutral-400 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500 transform group-hover:translate-x-2">
-                                    <ArrowLeft size={24} className="rotate-180" />
-                                </div>
-                            </div>
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-indigo-400" /> {isPlatformOwner ? "Your Roadmaps" : "Your Roadmaps"}
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {(isPlatformOwner ? platformOwnerRoadmaps : primaryRoadmaps).map((r) => <RoadmapCard key={r.id} roadmap={r} />)}
+                    </div>
+                </section>
 
-                            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-500/5 blur-[80px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-1000" />
-                        </Card>
-                    ))}
-                </div>
+                {isPlatformOwner && otherPlatformRoadmaps.length > 0 && (
+                    <section className="space-y-6">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Compass className="text-sky-400" /> Roadmaps Created by Others
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {otherPlatformRoadmaps.map((r) => <RoadmapCard key={r.id} roadmap={r} />)}
+                        </div>
+                    </section>
+                )}
 
-                {roadmaps?.length === 0 && (
+                {(isPlatformOwner ? (platformOwnerRoadmaps.length === 0 && otherPlatformRoadmaps.length === 0) : primaryRoadmaps.length === 0) && suggestedRoadmaps.length === 0 && (
                     <div className="h-[40vh] flex flex-col items-center justify-center text-center space-y-8 bg-neutral-900/20 rounded-[4rem] border-2 border-dashed border-neutral-800">
                         <Compass size={64} className="text-neutral-800 animate-pulse" />
                         <div className="space-y-2">

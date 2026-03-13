@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Map, Zap, ShieldCheck, LogOut, Menu, X, Compass } from 'lucide-react';
+import { BookOpen, Map, Zap, ShieldCheck, LogOut, Menu, X, Compass, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -17,6 +17,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     const location = useLocation();
     const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const isPlatformOwner = user?.email === 'admin@remlearner.com';
+    const visibleNavItems = isPlatformOwner
+        ? [...navItems, { icon: Users, label: 'People', path: '/admin/people' }]
+        : navItems;
 
     return (
         <div className="flex h-screen bg-neutral-950 text-neutral-100 overflow-hidden font-sans">
@@ -51,7 +55,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     <nav className="p-4 space-y-1">
-                        {navItems.map((item) => {
+                        {visibleNavItems.map((item) => {
                             const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
                             return (
                                 <Link

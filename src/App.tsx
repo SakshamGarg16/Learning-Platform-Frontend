@@ -14,6 +14,7 @@ import { Onboarding } from './pages/Onboarding';
 import { AdminPortal } from './pages/AdminPortal';
 import CandidatePerspective from './pages/CandidatePerspective';
 import { RoadmapExplorer } from './pages/RoadmapExplorer';
+import { PlatformPeople } from './pages/PlatformPeople';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -40,6 +41,17 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user?.role !== 'admin') return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+}
+
+function PlatformOwnerRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-indigo-400 font-mono">Verifying Platform Access...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user && !user.profileCompleted) return <Navigate to="/onboarding" replace />;
+  if (user?.email !== 'admin@remlearner.com') return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
@@ -77,6 +89,7 @@ function App() {
             <Route path="/roadmaps/:id" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps/share/:shareRoadmapId" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/track/:trackId/candidate/:learnerId/perspective" element={<AdminRoute><CandidatePerspective /></AdminRoute>} />
+            <Route path="/admin/people" element={<PlatformOwnerRoute><AppLayout><PlatformPeople /></AppLayout></PlatformOwnerRoute>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

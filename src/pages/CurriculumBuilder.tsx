@@ -17,6 +17,9 @@ interface TrackItem {
     created_at: string;
     is_creator?: boolean;
     modules?: Array<{ id: string }>;
+    created_by_info?: { id: string; name: string; email: string } | null;
+    enrollment_count?: number;
+    is_global_suggestion?: boolean;
 }
 
 interface RoadmapItem {
@@ -24,6 +27,9 @@ interface RoadmapItem {
     title: string;
     description: string;
     steps: Array<{ track?: { id: string } | null }>;
+    created_by_info?: { id: string; name: string; email: string } | null;
+    enrollment_count?: number;
+    is_global_suggestion?: boolean;
 }
 
 export function CurriculumBuilder() {
@@ -35,6 +41,7 @@ export function CurriculumBuilder() {
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
 
     const isAdmin = user?.role === 'admin';
+    const isPlatformOwner = user?.email === 'admin@remlearner.com';
 
     // Fetch tracks managed by this admin
     const { data: managedTracks, refetch: refetchTracks } = useQuery({
@@ -54,6 +61,26 @@ export function CurriculumBuilder() {
     );
     const standaloneManagedTracks = ((managedTracks || []) as TrackItem[]).filter((track) => !roadmapTrackIds.has(track.id));
     const visibleRoadmaps = ((roadmaps || []) as RoadmapItem[]).filter((roadmap) => roadmap.steps.length > 0);
+    const suggestedTracks = standaloneManagedTracks.filter((track) => track.is_global_suggestion && !isPlatformOwner);
+    const primaryTracks = isPlatformOwner
+        ? standaloneManagedTracks
+        : standaloneManagedTracks.filter((track) => !track.is_global_suggestion && track.is_creator);
+    const suggestedRoadmaps = visibleRoadmaps.filter((roadmap) => roadmap.is_global_suggestion && !isPlatformOwner);
+    const primaryRoadmaps = isPlatformOwner
+        ? visibleRoadmaps
+        : visibleRoadmaps.filter((roadmap) => !roadmap.is_global_suggestion);
+    const platformOwnerTracks = isPlatformOwner
+        ? primaryTracks.filter((track) => track.created_by_info?.email === user?.email)
+        : [];
+    const otherPlatformTracks = isPlatformOwner
+        ? primaryTracks.filter((track) => track.created_by_info?.email !== user?.email)
+        : [];
+    const platformOwnerRoadmaps = isPlatformOwner
+        ? primaryRoadmaps.filter((roadmap) => roadmap.created_by_info?.email === user?.email)
+        : [];
+    const otherPlatformRoadmaps = isPlatformOwner
+        ? primaryRoadmaps.filter((roadmap) => roadmap.created_by_info?.email !== user?.email)
+        : [];
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -147,11 +174,11 @@ export function CurriculumBuilder() {
 
             <section className="space-y-6">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Users className="text-indigo-400" /> {isAdmin ? "Managed Learning Tracks" : "Your Generated Tracks"}
+                    <Users className="text-indigo-400" /> {isPlatformOwner ? "Your Track Catalog" : isAdmin ? "Managed Learning Tracks" : "Your Generated Tracks"}
                 </h2>
 
                 <div className="grid gap-4">
-                    {standaloneManagedTracks.filter((t: any) => t.is_creator).map((track: any) => (
+                    {(isPlatformOwner ? platformOwnerTracks : primaryTracks).map((track: any) => (
                         <Card key={track.id} className="p-0 border-neutral-800 overflow-hidden">
                             <div
                                 className="p-6 flex items-center justify-between cursor-pointer hover:bg-neutral-900/50 transition-colors"
@@ -166,6 +193,11 @@ export function CurriculumBuilder() {
                                         <p className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
                                             {track.modules?.length || 0} Modules • Created {new Date(track.created_at).toLocaleDateString()}
                                         </p>
+                                        {isPlatformOwner && (
+                                            <p className="text-xs text-neutral-400 mt-2">
+                                                Created by {track.created_by_info?.name || 'Unknown'} ({track.created_by_info?.email || 'n/a'}) • {track.enrollment_count || 0} enrolled
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6">
@@ -204,7 +236,7 @@ export function CurriculumBuilder() {
                         </Card>
                     ))}
 
-                    {(standaloneManagedTracks.filter((t: any) => t.is_creator).length === 0) && (
+                    {(isPlatformOwner ? platformOwnerTracks : primaryTracks).length === 0 && (
                         <div className="p-12 text-center bg-neutral-900/30 rounded-3xl border border-neutral-800 border-dashed">
                             <p className="text-neutral-500 italic">No tracks have been deployed yet.</p>
                         </div>
@@ -212,24 +244,163 @@ export function CurriculumBuilder() {
                 </div>
             </section>
 
-            {visibleRoadmaps.length > 0 && (
+            {isPlatformOwner && otherPlatformTracks.length > 0 && (
                 <section className="space-y-6">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Compass className="text-sky-400" /> Roadmap-Managed Tracks
+                        <Users className="text-sky-400" /> Tracks Created by Others
                     </h2>
                     <div className="grid gap-4">
-                        {visibleRoadmaps.map((roadmap) => (
+                        {otherPlatformTracks.map((track: any) => (
+                            <Card key={track.id} className="p-0 border-neutral-800 overflow-hidden">
+                                <div
+                                    className="p-6 flex items-center justify-between cursor-pointer hover:bg-neutral-900/50 transition-colors"
+                                    onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-neutral-800 rounded-xl text-neutral-400">
+                                            <FileText size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white">{track.title}</h3>
+                                            <p className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
+                                                {track.modules?.length || 0} Modules • Created {new Date(track.created_at).toLocaleDateString()}
+                                            </p>
+                                            <p className="text-xs text-neutral-400 mt-2">
+                                                Created by {track.created_by_info?.name || 'Unknown'} ({track.created_by_info?.email || 'n/a'}) • {track.enrollment_count || 0} enrolled
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="hidden sm:block text-right">
+                                            <p className="text-xs text-neutral-500 uppercase font-bold">Enrollment Link</p>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(`${appUrl}/track/enroll/${track.id}`); }}
+                                                className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 mt-1"
+                                            >
+                                                Copy Link <LinkIcon size={12} />
+                                            </button>
+                                        </div>
+                                        {expandedTrack === track.id ? <ChevronUp className="text-neutral-600" /> : <ChevronDown className="text-neutral-600" />}
+                                    </div>
+                                </div>
+
+                                <AnimatePresence>
+                                    {expandedTrack === track.id && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            className="border-t border-neutral-800 bg-neutral-950/50"
+                                        >
+                                            <CandidatesList trackId={track.id} />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {!isPlatformOwner && suggestedTracks.length > 0 && (
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-emerald-400" /> Suggested Tracks
+                    </h2>
+                    <div className="grid gap-4">
+                        {suggestedTracks.map((track) => (
+                            <Card key={track.id} className="p-6 border-neutral-800 bg-emerald-500/5">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <Badge variant="success" className="mb-3">Suggested by RemLearner</Badge>
+                                        <h3 className="text-lg font-bold text-white">{track.title}</h3>
+                                        <p className="text-sm text-neutral-400 mt-1">{track.description}</p>
+                                    </div>
+                                    <Button onClick={() => navigate(`/track/enroll/${track.id}`)}>
+                                        Explore Track
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {(isPlatformOwner ? platformOwnerRoadmaps : primaryRoadmaps).length > 0 && (
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-sky-400" /> {isPlatformOwner ? "Your Roadmaps" : "Roadmap-Managed Tracks"}
+                    </h2>
+                    <div className="grid gap-4">
+                        {(isPlatformOwner ? platformOwnerRoadmaps : primaryRoadmaps).map((roadmap) => (
                             <Card key={roadmap.id} className="p-6 border-neutral-800 bg-sky-500/5">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
-                                        <Badge variant="neutral" className="bg-sky-500/10 text-sky-300 border-sky-500/20 mb-3">
-                                            Roadmap Container
+                                        <Badge variant={roadmap.is_global_suggestion ? "success" : "neutral"} className="bg-sky-500/10 text-sky-300 border-sky-500/20 mb-3">
+                                            {roadmap.is_global_suggestion ? "Suggested Roadmap" : "Roadmap Container"}
                                         </Badge>
                                         <h3 className="text-lg font-bold text-white">{roadmap.title}</h3>
                                         <p className="text-sm text-neutral-400 mt-1">{roadmap.description}</p>
+                                        {isPlatformOwner && (
+                                            <p className="text-xs text-neutral-400 mt-2">
+                                                Created by {roadmap.created_by_info?.name || 'Unknown'} ({roadmap.created_by_info?.email || 'n/a'}) • {roadmap.enrollment_count || 0} enrolled
+                                            </p>
+                                        )}
                                     </div>
                                     <Button variant="secondary" onClick={() => navigate(`/roadmaps/${roadmap.id}`)}>
                                         Open Roadmap
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {isPlatformOwner && otherPlatformRoadmaps.length > 0 && (
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-indigo-400" /> Roadmaps Created by Others
+                    </h2>
+                    <div className="grid gap-4">
+                        {otherPlatformRoadmaps.map((roadmap) => (
+                            <Card key={roadmap.id} className="p-6 border-neutral-800 bg-indigo-500/5">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <Badge variant="neutral" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 mb-3">
+                                            External Roadmap
+                                        </Badge>
+                                        <h3 className="text-lg font-bold text-white">{roadmap.title}</h3>
+                                        <p className="text-sm text-neutral-400 mt-1">{roadmap.description}</p>
+                                        <p className="text-xs text-neutral-400 mt-2">
+                                            Created by {roadmap.created_by_info?.name || 'Unknown'} ({roadmap.created_by_info?.email || 'n/a'}) • {roadmap.enrollment_count || 0} enrolled
+                                        </p>
+                                    </div>
+                                    <Button variant="secondary" onClick={() => navigate(`/roadmaps/${roadmap.id}`)}>
+                                        Open Roadmap
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {!isPlatformOwner && suggestedRoadmaps.length > 0 && (
+                <section className="space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Compass className="text-emerald-400" /> Suggested Roadmaps
+                    </h2>
+                    <div className="grid gap-4">
+                        {suggestedRoadmaps.map((roadmap) => (
+                            <Card key={roadmap.id} className="p-6 border-neutral-800 bg-emerald-500/5">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <Badge variant="success" className="mb-3">Suggested by RemLearner</Badge>
+                                        <h3 className="text-lg font-bold text-white">{roadmap.title}</h3>
+                                        <p className="text-sm text-neutral-400 mt-1">{roadmap.description}</p>
+                                    </div>
+                                    <Button onClick={() => navigate(`/roadmaps/${roadmap.id}`)}>
+                                        Explore Roadmap
                                     </Button>
                                 </div>
                             </Card>

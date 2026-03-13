@@ -17,6 +17,9 @@ interface TrackItem {
     is_creator?: boolean;
     progress_percentage?: number;
     modules?: Array<{ id: string }>;
+    created_by_info?: { id: string; name: string; email: string } | null;
+    enrollment_count?: number;
+    is_global_suggestion?: boolean;
 }
 
 interface RoadmapStepItem {
@@ -33,11 +36,15 @@ interface RoadmapItem {
     is_enrolled?: boolean;
     is_finalized?: boolean;
     steps: RoadmapStepItem[];
+    created_by_info?: { id: string; name: string; email: string } | null;
+    enrollment_count?: number;
+    is_global_suggestion?: boolean;
 }
 
 export function Dashboard() {
     const { user } = useAuth();
     const firstName = user?.name?.split(' ')[0] || 'Operator';
+    const isPlatformOwner = user?.email === 'admin@remlearner.com';
 
     // Fetch data from Django API
     const { data: readinessData } = useQuery({
@@ -65,20 +72,30 @@ export function Dashboard() {
     );
 
     const standaloneTracks: TrackItem[] = (tracksData || []).filter((track: TrackItem) => !roadmapTrackIds.has(track.id));
-    const enrolledRoadmaps = visibleRoadmaps.filter((roadmap) => roadmap.is_enrolled);
-    const createdRoadmaps = visibleRoadmaps.filter((roadmap) => !roadmap.is_enrolled);
+    const suggestedRoadmaps = visibleRoadmaps.filter((roadmap) => roadmap.is_global_suggestion);
+    const enrolledRoadmaps = visibleRoadmaps.filter((roadmap) => roadmap.is_enrolled && !roadmap.is_global_suggestion);
+    const createdRoadmaps = visibleRoadmaps.filter((roadmap) => !roadmap.is_enrolled && !roadmap.is_global_suggestion);
 
-    const activeLearning = standaloneTracks.filter((t) => t.is_enrolled && !t.is_creator && (t.progress_percentage || 0) < 100);
-    const yourCreations = standaloneTracks.filter((t) => t.is_creator && (t.progress_percentage || 0) < 100);
-    const completed = standaloneTracks.filter((t) => (t.progress_percentage || 0) === 100);
+    const suggestedTracks = standaloneTracks.filter((track) => track.is_global_suggestion);
+    const nonSuggestedTracks = standaloneTracks.filter((track) => !track.is_global_suggestion);
+
+    const activeLearning = nonSuggestedTracks.filter((t) => t.is_enrolled && !t.is_creator && (t.progress_percentage || 0) < 100);
+    const yourCreations = nonSuggestedTracks.filter((t) => t.is_creator && (t.progress_percentage || 0) < 100);
+    const completed = nonSuggestedTracks.filter((t) => (t.progress_percentage || 0) === 100);
+    const platformCatalogTracks = isPlatformOwner ? standaloneTracks : [];
+    const platformCatalogRoadmaps = isPlatformOwner ? visibleRoadmaps : [];
+    const platformOwnerTracks = platformCatalogTracks.filter((track: TrackItem) => track.created_by_info?.email === user?.email);
+    const otherPlatformTracks = platformCatalogTracks.filter((track: TrackItem) => track.created_by_info?.email !== user?.email);
+    const platformOwnerRoadmaps = platformCatalogRoadmaps.filter((roadmap: RoadmapItem) => roadmap.created_by_info?.email === user?.email);
+    const otherPlatformRoadmaps = platformCatalogRoadmaps.filter((roadmap: RoadmapItem) => roadmap.created_by_info?.email !== user?.email);
 
     const stats = [
         { label: 'Readiness Score', value: score, icon: Award, color: 'text-emerald-400' },
-        { label: 'Roadmaps In Progress', value: enrolledRoadmaps.length.toString(), icon: Compass, color: 'text-sky-400' },
-        { label: 'Active Progress', value: (activeLearning.length + yourCreations.length).toString(), icon: CheckCircle2, color: 'text-indigo-400' },
+        { label: isPlatformOwner ? 'Platform Roadmaps' : 'Roadmaps In Progress', value: (isPlatformOwner ? platformCatalogRoadmaps.length : enrolledRoadmaps.length).toString(), icon: Compass, color: 'text-sky-400' },
+        { label: isPlatformOwner ? 'Platform Tracks' : 'Active Progress', value: (isPlatformOwner ? platformCatalogTracks.length : (activeLearning.length + yourCreations.length)).toString(), icon: CheckCircle2, color: 'text-indigo-400' },
     ];
 
-    const TrackGrid = ({ tracks, title }: { tracks: TrackItem[], title: string }) => {
+    const TrackGrid = ({ tracks, title, showOwnership = false }: { tracks: TrackItem[], title: string; showOwnership?: boolean }) => {
         if (tracks.length === 0) return null;
         return (
             <div className="space-y-6">
@@ -97,8 +114,8 @@ export function Dashboard() {
                                 <Card gradientHover className="p-0 overflow-hidden h-full flex flex-col border-neutral-800 hover:border-indigo-500/50 transition-all cursor-pointer group">
                                     <div className="p-5 border-b border-neutral-800 bg-neutral-900/50 flex-1">
                                         <div className="flex justify-between items-start mb-3">
-                                            <Badge variant={track.is_ai_generated ? "indigo" : "neutral"}>
-                                                {track.is_ai_generated ? "AI Generated" : "Custom"}
+                                            <Badge variant={track.is_global_suggestion ? "success" : track.is_ai_generated ? "indigo" : "neutral"}>
+                                                {track.created_by_info?.email === user?.email ? "Created by You" : track.is_global_suggestion ? "Suggested by RemLearner" : track.is_ai_generated ? "AI Generated" : "Custom"}
                                             </Badge>
                                             <div className="text-right">
                                                 <span className="text-lg font-bold text-white">{track.progress_percentage || 0}%</span>
@@ -106,6 +123,12 @@ export function Dashboard() {
                                         </div>
                                         <h3 className="text-lg font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors line-clamp-1">{track.title}</h3>
                                         <p className="text-sm text-neutral-500 line-clamp-2 mb-4">{track.description}</p>
+                                        {showOwnership && (
+                                            <div className="space-y-1 text-xs text-neutral-400">
+                                                <p>Created by {track.created_by_info?.name || 'Unknown'} ({track.created_by_info?.email || 'n/a'})</p>
+                                                <p>{track.enrollment_count || 0} enrolled learners</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="p-4 bg-neutral-900 flex items-center justify-between">
                                         <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
@@ -124,7 +147,7 @@ export function Dashboard() {
         );
     };
 
-    const RoadmapGrid = ({ roadmaps, title }: { roadmaps: RoadmapItem[]; title: string }) => {
+    const RoadmapGrid = ({ roadmaps, title, showOwnership = false }: { roadmaps: RoadmapItem[]; title: string; showOwnership?: boolean }) => {
         if (roadmaps.length === 0) return null;
 
         return (
@@ -150,7 +173,7 @@ export function Dashboard() {
                                         <div className="flex items-start justify-between gap-4 mb-5">
                                             <div className="space-y-3">
                                                 <Badge variant="neutral" className="bg-sky-500/10 text-sky-300 border-sky-500/20">
-                                                    Roadmap Journey
+                                                    {roadmap.created_by_info?.email === user?.email ? "Created by You" : "Roadmap Journey"}
                                                 </Badge>
                                                 <div>
                                                     <h3 className="text-2xl font-bold text-white group-hover:text-sky-300 transition-colors">
@@ -159,6 +182,12 @@ export function Dashboard() {
                                                     <p className="text-sm text-neutral-400 mt-2 line-clamp-2">
                                                         {roadmap.description}
                                                     </p>
+                                                    {showOwnership && (
+                                                        <div className="space-y-1 text-xs text-neutral-400 mt-3">
+                                                            <p>Created by {roadmap.created_by_info?.name || 'Unknown'} ({roadmap.created_by_info?.email || 'n/a'})</p>
+                                                            <p>{roadmap.enrollment_count || 0} enrolled learners</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0">
@@ -246,11 +275,24 @@ export function Dashboard() {
                     </div>
                 ) : ((tracksData?.length || 0) > 0 || visibleRoadmaps.length > 0) ? (
                     <>
-                        <RoadmapGrid roadmaps={enrolledRoadmaps} title="Guided Roadmaps" />
-                        <RoadmapGrid roadmaps={createdRoadmaps} title="Your Designed Roadmaps" />
-                        <TrackGrid tracks={activeLearning} title="Active Learning Tracks" />
-                        <TrackGrid tracks={yourCreations} title="Your Custom Lab" />
-                        <TrackGrid tracks={completed} title="Completed Masteries" />
+                        {isPlatformOwner ? (
+                            <>
+                                <RoadmapGrid roadmaps={platformOwnerRoadmaps} title="Your Roadmaps" showOwnership />
+                                <TrackGrid tracks={platformOwnerTracks} title="Your Tracks" showOwnership />
+                                <RoadmapGrid roadmaps={otherPlatformRoadmaps} title="Roadmaps Created by Others" showOwnership />
+                                <TrackGrid tracks={otherPlatformTracks} title="Tracks Created by Others" showOwnership />
+                            </>
+                        ) : (
+                            <>
+                                <RoadmapGrid roadmaps={suggestedRoadmaps} title="Suggested Roadmaps" />
+                                <TrackGrid tracks={suggestedTracks} title="Suggested Tracks" />
+                                <RoadmapGrid roadmaps={enrolledRoadmaps} title="Guided Roadmaps" />
+                                <RoadmapGrid roadmaps={createdRoadmaps} title="Your Designed Roadmaps" />
+                                <TrackGrid tracks={activeLearning} title="Active Learning Tracks" />
+                                <TrackGrid tracks={yourCreations} title="Your Custom Lab" />
+                                <TrackGrid tracks={completed} title="Completed Masteries" />
+                            </>
+                        )}
                     </>
                 ) : (
                     <Card className="p-12 text-center">
