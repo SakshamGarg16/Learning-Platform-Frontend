@@ -8,6 +8,7 @@ import { TrackViewer } from './pages/TrackViewer';
 import { ReadinessScorecard } from './pages/ReadinessScorecard';
 import { StudyMode } from './pages/StudyMode';
 import { AssessmentMode } from './pages/AssessmentMode';
+import { FinalAssessmentMode } from './pages/FinalAssessmentMode';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Onboarding } from './pages/Onboarding';
@@ -84,10 +85,12 @@ function App() {
             <Route path="/track/enroll/:trackId" element={<ProtectedRoute><AppLayout><TrackViewer /></AppLayout></ProtectedRoute>} />
             <Route path="/track/:trackId/lesson/:lessonId" element={<ProtectedRoute><StudyMode /></ProtectedRoute>} />
             <Route path="/track/:trackId/module/:moduleId/assessment" element={<ProtectedRoute><AssessmentMode /></ProtectedRoute>} />
+            <Route path="/track/:trackId/final-assessment" element={<ProtectedRoute><FinalAssessmentMode /></ProtectedRoute>} />
             <Route path="/readiness" element={<ProtectedRoute><AppLayout><ReadinessScorecard /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps/:id" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps/share/:shareRoadmapId" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
+            <Route path="/roadmaps/:roadmapId/final-assessment" element={<ProtectedRoute><FinalAssessmentMode /></ProtectedRoute>} />
             <Route path="/admin/track/:trackId/candidate/:learnerId/perspective" element={<AdminRoute><CandidatePerspective /></AdminRoute>} />
             <Route path="/admin/people" element={<PlatformOwnerRoute><AppLayout><PlatformPeople /></AppLayout></PlatformOwnerRoute>} />
           </Routes>

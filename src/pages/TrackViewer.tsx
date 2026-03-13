@@ -1,7 +1,7 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, BASE_URL } from '../lib/api';
-import { BookOpen, Play, ChevronRight, Lock, CheckCircle2, PlayCircle, Sparkles, Users, Phone, FileText, ArrowLeft, Compass } from 'lucide-react';
+import { BookOpen, Play, ChevronRight, Lock, CheckCircle2, PlayCircle, Sparkles, Users, Phone, FileText, ArrowLeft, Compass, ShieldCheck, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -138,6 +138,38 @@ export function TrackViewer() {
 
             {/* Admin Management Section */}
             {track.is_creator && !parentRoadmap && <AdminCandidateSection trackId={trackId!} />}
+
+            {!track.is_creator && (
+                <Card className="p-6 md:p-8 border-neutral-800 bg-neutral-900/40">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <ShieldCheck className="text-indigo-400" size={22} />
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Final Evaluation</h2>
+                            </div>
+                            <p className="text-neutral-400 max-w-2xl">
+                                Complete every module assessment to unlock the proctored final evaluation for this track.
+                            </p>
+                            <p className="text-sm text-neutral-500">
+                                Progress: {track.final_assessment_status?.completed_modules || 0} / {track.final_assessment_status?.total_modules || 0} modules
+                            </p>
+                            {track.final_assessment_status?.certificate && (
+                                <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                                    <Award size={16} />
+                                    Certificate issued: {track.final_assessment_status.certificate.certificate_code}
+                                </div>
+                            )}
+                        </div>
+                        <Button
+                            onClick={() => navigate(`/track/${trackId}/final-assessment`)}
+                            disabled={!track.final_assessment_status?.available}
+                            className="h-14 px-8"
+                        >
+                            {track.final_assessment_status?.passed ? 'Review Final Result' : 'Start Final Evaluation'}
+                        </Button>
+                    </div>
+                </Card>
+            )}
 
             <div className="space-y-12">
                 {track.modules?.map((mod: any, idx: number) => (

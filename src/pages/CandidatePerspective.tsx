@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import {
     ArrowLeft,
+    Award,
     BookOpen,
     CheckCircle2,
     ChevronLeft,
@@ -12,6 +13,7 @@ import {
     Sparkles,
     Activity,
     Shield,
+    ShieldCheck,
     Menu,
     X
 } from 'lucide-react';
@@ -90,7 +92,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 export default function CandidatePerspective() {
     const { trackId, learnerId } = useParams<{ trackId: string; learnerId: string }>();
     const navigate = useNavigate();
-    const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'assessment'>('overview');
+    const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'assessment' | 'final_assessment'>('overview');
     const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
     const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -115,6 +117,13 @@ export default function CandidatePerspective() {
         setSelectedModuleId(moduleId);
         setSelectedLessonId(null);
         setViewMode('assessment');
+        setIsMobileSidebarOpen(false);
+    };
+
+    const handleFinalAssessmentSelect = () => {
+        setSelectedModuleId(null);
+        setSelectedLessonId(null);
+        setViewMode('final_assessment');
         setIsMobileSidebarOpen(false);
     };
 
@@ -184,6 +193,26 @@ export default function CandidatePerspective() {
                     </button>
 
                     <div className="h-px bg-neutral-800/50 mx-2" />
+
+                    {dossier?.final_assessment && (
+                        <button
+                            onClick={handleFinalAssessmentSelect}
+                            className={`w-full text-left p-4 rounded-3xl transition-all duration-300 flex items-center gap-4 ${viewMode === 'final_assessment'
+                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                                : 'text-neutral-500 hover:bg-white/5 hover:text-neutral-300'
+                                }`}
+                        >
+                            <div className={`p-2 rounded-xl ${viewMode === 'final_assessment' ? 'bg-white/20' : 'bg-neutral-900 border border-neutral-800 text-emerald-400'}`}>
+                                <Award size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <span className="text-xs font-black uppercase tracking-widest block truncate">Final Evaluation</span>
+                                <span className="text-[10px] text-neutral-200/70 block">
+                                    {dossier.final_assessment.attempt_count || 0} attempts
+                                </span>
+                            </div>
+                        </button>
+                    )}
 
                     {dossier?.modules.map((module: any, mIdx: number) => (
                         <div key={module.id} className="space-y-4">
@@ -258,7 +287,13 @@ export default function CandidatePerspective() {
                                 exit={{ opacity: 0, y: -5 }}
                                 className="text-xl font-bold text-white tracking-tight"
                             >
-                                {viewMode === 'overview' ? "Syllabus Infrastructure Overview" : (viewMode === 'lesson' ? currentLesson?.title : `Audit: ${currentModule?.title} Test`)}
+                                {viewMode === 'overview'
+                                    ? "Syllabus Infrastructure Overview"
+                                    : viewMode === 'lesson'
+                                        ? currentLesson?.title
+                                        : viewMode === 'assessment'
+                                            ? `Audit: ${currentModule?.title} Test`
+                                            : 'Certification Final Evaluation'}
                             </motion.h1>
                         </AnimatePresence>
                     </div>
@@ -433,7 +468,7 @@ export default function CandidatePerspective() {
                                         </ReactMarkdown>
                                     </article>
                                 </motion.div>
-                            ) : (
+                            ) : viewMode === 'assessment' ? (
                                 <motion.div
                                     key="assessment-content"
                                     initial={{ opacity: 0, scale: 0.98 }}
@@ -597,6 +632,161 @@ export default function CandidatePerspective() {
                                                                     <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] ${isCorrect ? 'bg-green-500/10 text-green-500/80 border border-green-500/20' : 'bg-red-500/10 text-red-500/80 border border-red-500/20'}`}>
                                                                         {isCorrect ? 'Aligned' : 'Divergence'}
                                                                     </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </Card>
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="final-assessment-content"
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.98 }}
+                                    className="space-y-12"
+                                >
+                                    <div className="flex justify-between items-start pb-12 border-b border-neutral-900">
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                                Certification Audit <ChevronRight size={10} /> {dossier?.final_assessment?.title}
+                                            </p>
+                                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Final Evaluation Review</h2>
+                                            <div className="flex items-center gap-4 pt-2 flex-wrap">
+                                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
+                                                    {dossier?.final_assessment?.attempt_count || 0} Attempts Recorded
+                                                </Badge>
+                                                {dossier?.final_assessment?.attempts?.[0] && (
+                                                    <Badge className={`${dossier.final_assessment.attempts[0].passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'} px-3 py-1 font-black uppercase text-[10px] tracking-widest`}>
+                                                        Audit Status: {dossier.final_assessment.attempts[0].passed ? 'CERTIFIED' : 'NOT CLEARED'}
+                                                    </Badge>
+                                                )}
+                                                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
+                                                    Pass Mark: {dossier?.final_assessment?.passing_score}%
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {!dossier?.final_assessment && (
+                                        <Card className="p-8 bg-neutral-900/30 border-neutral-800 rounded-[2rem] text-neutral-400">
+                                            Final evaluation has not been generated for this track yet.
+                                        </Card>
+                                    )}
+
+                                    {dossier?.final_assessment?.attempts?.map((attempt: any, aIdx: number) => (
+                                        <div key={attempt.id} className="space-y-8">
+                                            <div className="flex items-center gap-4 flex-wrap">
+                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${attempt.passed ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}`}>
+                                                    {Math.round(attempt.score)}%
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-white italic uppercase tracking-tight text-sm">Final Attempt {dossier.final_assessment.attempts.length - aIdx}</h3>
+                                                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
+                                                        {new Date(attempt.created_at).toLocaleDateString()} • {attempt.passed ? 'Passed' : 'Failed'}
+                                                    </p>
+                                                </div>
+                                                {attempt.certificate && (
+                                                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest flex items-center gap-2">
+                                                        <ShieldCheck size={12} /> {attempt.certificate.certificate_code}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            <Card className="p-6 md:p-8 bg-neutral-900/30 border-neutral-800 rounded-[2rem] md:rounded-[2.5rem] space-y-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
+                                                        <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Attempts</div>
+                                                        <div className="text-2xl font-black text-white">{dossier.final_assessment.attempt_count}</div>
+                                                    </div>
+                                                    <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
+                                                        <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Integrity</div>
+                                                        <div className="text-sm font-bold text-white">
+                                                            {attempt.terminated_reason ? 'Violation flagged' : 'Clean run'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
+                                                        <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Certificate</div>
+                                                        <div className="text-sm font-bold text-white">
+                                                            {attempt.certificate ? 'Issued' : 'Not issued'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {attempt.terminated_reason && (
+                                                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                                                        {attempt.terminated_reason}
+                                                    </div>
+                                                )}
+
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                                    <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Integrity Flags</div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-neutral-300">
+                                                        <div>Tab switches: {attempt.integrity_flags?.tab_switch_count || 0}</div>
+                                                        <div>Fullscreen exits: {attempt.integrity_flags?.fullscreen_exit_count || 0}</div>
+                                                        <div>Right-clicks: {attempt.integrity_flags?.context_menu_count || 0}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-10">
+                                                    {dossier.final_assessment.questions.map((q: any, qIdx: number) => {
+                                                        const rawUserAnswer = attempt.answers[qIdx] !== undefined ? attempt.answers[qIdx] : attempt.answers[String(qIdx)];
+                                                        const correctSet = new Set(
+                                                            Array.isArray(q.correct_answer)
+                                                                ? q.correct_answer.map(String)
+                                                                : q.correct_answer !== undefined
+                                                                    ? [String(q.correct_answer)]
+                                                                    : q.correct_index !== undefined
+                                                                        ? [String(q.correct_index)]
+                                                                        : []
+                                                        );
+                                                        const isCorrect = Array.isArray(rawUserAnswer)
+                                                            ? rawUserAnswer.length === correctSet.size && rawUserAnswer.every((val: any) => correctSet.has(String(val)))
+                                                            : correctSet.has(String(rawUserAnswer));
+
+                                                        return (
+                                                            <div key={qIdx} className="space-y-5">
+                                                                <div className="flex gap-4">
+                                                                    <span className="text-[10px] font-black font-mono text-neutral-600 mt-1 tabular-nums">{String(qIdx + 1).padStart(2, '0')}</span>
+                                                                    <div className="space-y-2 flex-1">
+                                                                        <p className="font-bold text-white text-lg tracking-tight leading-snug">{q.question || q.text}</p>
+                                                                        <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-black">Candidate answer trace</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
+                                                                    {q.options.map((opt: string, oIdx: number) => {
+                                                                        const oIdxStr = String(oIdx);
+                                                                        const isSelected = Array.isArray(rawUserAnswer)
+                                                                            ? rawUserAnswer.map(String).includes(oIdxStr)
+                                                                            : String(rawUserAnswer) === oIdxStr;
+                                                                        const isRightAnswer = correctSet.has(oIdxStr);
+
+                                                                        let statusClass = "border-neutral-800 text-neutral-500 bg-black/20";
+                                                                        if (isSelected) statusClass = isCorrect ? "border-green-500/50 bg-green-500/10 text-green-400" : "border-red-500/50 bg-red-500/10 text-red-400";
+                                                                        if (isRightAnswer && (!isSelected || !isCorrect)) statusClass = "border-blue-500/30 bg-blue-500/5 text-blue-400/80";
+
+                                                                        return (
+                                                                            <div key={oIdx} className={`p-4 rounded-2xl border transition-all text-xs font-medium flex items-center justify-between ${statusClass}`}>
+                                                                                <span>{opt}</span>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {isSelected && (
+                                                                                        <Badge className={`${isCorrect ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} border-none px-2 py-0.5 text-[8px] font-black uppercase tracking-tighter`}>
+                                                                                            {isCorrect ? 'Learner picked' : 'Wrong pick'}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                    {isRightAnswer && !isSelected && (
+                                                                                        <Badge className="bg-blue-500/20 text-blue-400 border-none px-2 py-0.5 text-[8px] font-black uppercase tracking-tighter">
+                                                                                            Correct answer
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         );

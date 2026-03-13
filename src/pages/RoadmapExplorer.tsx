@@ -19,7 +19,9 @@ import {
     Loader2,
     ArrowLeft,
     Clock,
-    Target
+    Target,
+    ShieldCheck,
+    Award
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -50,6 +52,13 @@ interface Roadmap {
     created_by_info?: { id: string; name: string; email: string } | null;
     enrollment_count?: number;
     is_global_suggestion?: boolean;
+    final_assessment_status?: {
+        available: boolean;
+        completed_modules: number;
+        total_modules: number;
+        passed: boolean;
+        certificate?: { certificate_code: string } | null;
+    };
 }
 
 interface RoadmapCandidateStepProgress {
@@ -459,6 +468,38 @@ export function RoadmapExplorer() {
                 </Card>
 
                 <div className="space-y-12">
+                    {!isAdmin && (
+                        <Card className="p-8 md:p-10 border-neutral-800 bg-neutral-900/30 rounded-[2.5rem]">
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <ShieldCheck className="text-indigo-400" size={22} />
+                                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">Roadmap Final Evaluation</h3>
+                                    </div>
+                                    <p className="text-neutral-400 max-w-2xl">
+                                        Complete every module across the roadmap to unlock the proctored certification exam.
+                                    </p>
+                                    <p className="text-sm text-neutral-500">
+                                        Progress: {activeRoadmap.final_assessment_status?.completed_modules || 0} / {activeRoadmap.final_assessment_status?.total_modules || 0} modules
+                                    </p>
+                                    {activeRoadmap.final_assessment_status?.certificate && (
+                                        <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                                            <Award size={16} />
+                                            Certificate issued: {activeRoadmap.final_assessment_status.certificate.certificate_code}
+                                        </div>
+                                    )}
+                                </div>
+                                <Button
+                                    onClick={() => navigate(`/roadmaps/${activeRoadmap.id}/final-assessment`)}
+                                    disabled={!activeRoadmap.final_assessment_status?.available}
+                                    className="h-14 px-8"
+                                >
+                                    {activeRoadmap.final_assessment_status?.passed ? 'Review Final Result' : 'Start Roadmap Final'}
+                                </Button>
+                            </div>
+                        </Card>
+                    )}
+
                     {isAdmin && (
                         <Card className="p-8 md:p-10 border-neutral-800 bg-neutral-900/30 rounded-[2.5rem]">
                             <div className="flex items-center justify-between gap-4 mb-8">
