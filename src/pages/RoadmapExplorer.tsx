@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import { 
     Compass, 
     Plus, 
@@ -52,6 +52,45 @@ interface Roadmap {
     is_global_suggestion?: boolean;
 }
 
+interface RoadmapCandidateStepProgress {
+    step_id: string;
+    step_title: string;
+    track_id: string | null;
+    track_title: string | null;
+    progress: number | null;
+    is_completed: boolean;
+    current_module?: {
+        id: string;
+        title: string;
+        order: number;
+        status: string;
+    } | null;
+}
+
+interface RoadmapCandidate {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    resume?: string | null;
+    progress: number;
+    enrolled_at: string;
+    current_focus?: {
+        step_id: string;
+        step_title: string;
+        track_id: string;
+        track_title: string;
+        progress: number;
+        current_module?: {
+            id: string;
+            title: string;
+            order: number;
+            status: string;
+        } | null;
+    } | null;
+    steps: RoadmapCandidateStepProgress[];
+}
+
 export function RoadmapExplorer() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -81,6 +120,12 @@ export function RoadmapExplorer() {
         queryKey: ['roadmap', activeRoadmapId],
         queryFn: async () => (await api.get(`/roadmaps/${activeRoadmapId}/`)).data as Roadmap,
         enabled: !!activeRoadmapId
+    });
+
+    const { data: roadmapCandidates, isLoading: candidatesLoading } = useQuery({
+        queryKey: ['roadmap-candidates', activeRoadmapId],
+        queryFn: async () => (await api.get(`/roadmaps/${activeRoadmapId}/enrolled_candidates/`)).data as RoadmapCandidate[],
+        enabled: !!activeRoadmapId && isAdmin
     });
 
     const activeRoadmap = activeRoadmapId ? activeRoadmapDetail : (roadmaps?.find(r => r.id === activeRoadmapId));
@@ -414,6 +459,26 @@ export function RoadmapExplorer() {
                 </Card>
 
                 <div className="space-y-12">
+                    {isAdmin && (
+                        <Card className="p-8 md:p-10 border-neutral-800 bg-neutral-900/30 rounded-[2.5rem]">
+                            <div className="flex items-center justify-between gap-4 mb-8">
+                                <div>
+                                    <Badge variant="indigo" className="mb-3">Candidate Status</Badge>
+                                    <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">Enrolled Candidates</h3>
+                                    <p className="text-sm text-neutral-400 mt-2">Roadmap-level progress across all finalized steps.</p>
+                                </div>
+                                <div className="text-right text-xs text-neutral-500 uppercase tracking-widest font-black">
+                                    {(roadmapCandidates || []).length} enrolled
+                                </div>
+                            </div>
+
+                            <RoadmapCandidatesList
+                                candidates={roadmapCandidates}
+                                isLoading={candidatesLoading}
+                            />
+                        </Card>
+                    )}
+
                     <div className="flex items-center gap-8 px-10 opacity-30">
                         <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-neutral-700" />
                         <span className="text-xs font-black text-neutral-500 uppercase tracking-[1em] italic">Strategic Flow</span>
@@ -470,7 +535,7 @@ export function RoadmapExplorer() {
                     ) : (
                         <div className="space-y-8 relative">
                             <div className="absolute left-[59px] top-20 bottom-20 w-[3px] bg-gradient-to-b from-indigo-500/60 via-neutral-800/20 to-transparent hidden md:block" />
-                            {localSteps.map((step, idx) => (
+                        {localSteps.map((step, idx) => (
                                 <div key={step.id} className="relative group/step">
                                     <div className="flex flex-col md:flex-row gap-12">
                                         <div className="flex-shrink-0 hidden md:block relative z-10 transition-transform duration-700 group-hover/step:translate-x-2">
@@ -483,10 +548,30 @@ export function RoadmapExplorer() {
                                             <div className="flex flex-col xl:flex-row justify-between gap-8 pt-2">
                                                 <div className="space-y-4">
                                                     <div className="flex items-center gap-4">
-                                                        <h5 className={`text-xl md:text-2xl font-black tracking-tight uppercase italic ${step.is_unlocked || isAdmin ? 'text-white' : 'text-neutral-800'}`}>{step.title}</h5>
+                                                        {step.track ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigate(`/track/enroll/${step.track.id}`)}
+                                                                className={`text-left text-xl md:text-2xl font-black tracking-tight uppercase italic transition-colors ${step.is_unlocked || isAdmin ? 'text-white hover:text-indigo-400' : 'text-neutral-800'}`}
+                                                            >
+                                                                {step.title}
+                                                            </button>
+                                                        ) : (
+                                                            <h5 className={`text-xl md:text-2xl font-black tracking-tight uppercase italic ${step.is_unlocked || isAdmin ? 'text-white' : 'text-neutral-800'}`}>{step.title}</h5>
+                                                        )}
                                                         {step.is_completed && <Badge variant="success" className="text-[9px] uppercase font-black px-3 py-1 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 tracking-widest">Mastered</Badge>}
                                                     </div>
-                                                    <p className={`text-base md:text-lg leading-relaxed max-w-3xl font-medium italic ${step.is_unlocked || isAdmin ? 'text-neutral-400' : 'text-neutral-800 opacity-30'}`}>{step.description}</p>
+                                                    {step.track ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => navigate(`/track/enroll/${step.track.id}`)}
+                                                            className={`block text-left text-base md:text-lg leading-relaxed max-w-3xl font-medium italic transition-colors ${step.is_unlocked || isAdmin ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-800 opacity-30'}`}
+                                                        >
+                                                            {step.description}
+                                                        </button>
+                                                    ) : (
+                                                        <p className={`text-base md:text-lg leading-relaxed max-w-3xl font-medium italic ${step.is_unlocked || isAdmin ? 'text-neutral-400' : 'text-neutral-800 opacity-30'}`}>{step.description}</p>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-4 self-start xl:self-center">
                                                     {step.track ? (
@@ -515,6 +600,125 @@ export function RoadmapExplorer() {
                     )}
                 </div>
             </motion.div>
+        </div>
+    );
+}
+
+function RoadmapCandidatesList({
+    candidates,
+    isLoading,
+}: {
+    candidates: RoadmapCandidate[] | undefined;
+    isLoading: boolean;
+}) {
+    const navigate = useNavigate();
+
+    if (isLoading) {
+        return <div className="p-6 text-neutral-500 animate-pulse font-mono text-xs uppercase tracking-widest text-center">Loading candidate status...</div>;
+    }
+
+    if (!candidates || candidates.length === 0) {
+        return (
+            <div className="p-16 text-center space-y-4">
+                <Target size={40} className="mx-auto text-neutral-800" />
+                <p className="text-neutral-500 font-medium italic">No candidates are enrolled in this roadmap yet.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid gap-6">
+            {candidates.map((candidate) => (
+                <Card key={candidate.id} className="p-6 bg-neutral-950/50 border-neutral-800 rounded-[2rem]">
+                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
+                        <div className="space-y-3 min-w-0">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-neutral-800 flex items-center justify-center text-lg font-black text-neutral-300">
+                                    {candidate.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                    <h4 className="text-xl font-bold text-white break-words">{candidate.name}</h4>
+                                    <p className="text-xs text-neutral-500 uppercase tracking-wider font-bold break-all">{candidate.email}</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
+                                Enrolled {new Date(candidate.enrolled_at).toLocaleDateString()}
+                            </p>
+                        </div>
+
+                        <div className="xl:min-w-[260px] space-y-3">
+                            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                                <span>Overall Progress</span>
+                                <span className="text-indigo-400 text-base">{candidate.progress || 0}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${candidate.progress || 0}%` }}
+                                    transition={{ duration: 0.8, ease: 'circOut' }}
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-sky-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {candidate.current_focus && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (candidate.current_focus?.track_id) {
+                                    navigate(`/track/enroll/${candidate.current_focus.track_id}`);
+                                }
+                            }}
+                            className="mt-6 w-full rounded-[1.5rem] border border-indigo-500/20 bg-indigo-500/5 p-5 text-left transition-colors hover:bg-indigo-500/10"
+                        >
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <div className="space-y-2 min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Current Position</p>
+                                    <p className="text-sm text-neutral-400 break-words">{candidate.current_focus.step_title}</p>
+                                    <p className="text-lg font-bold text-white transition-colors break-words">
+                                        {candidate.current_focus.current_module?.title || candidate.current_focus.track_title}
+                                    </p>
+                                </div>
+                                <Badge variant="indigo" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20">
+                                    {candidate.current_focus.progress}% complete
+                                </Badge>
+                            </div>
+                        </button>
+                    )}
+
+                    <div className="mt-6 grid gap-3">
+                        {candidate.steps.map((step) => (
+                            <button
+                                key={step.step_id}
+                                type="button"
+                                onClick={() => {
+                                    if (step.track_id) {
+                                        navigate(`/track/enroll/${step.track_id}`);
+                                    }
+                                }}
+                                disabled={!step.track_id}
+                                className="flex w-full flex-col md:flex-row md:items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3 text-left transition-colors hover:bg-white/[0.05] disabled:cursor-default disabled:hover:bg-white/[0.02]"
+                            >
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-white break-words">{step.step_title}</p>
+                                    <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                                        {step.current_module?.title || step.track_title || 'Track not finalized yet'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Badge
+                                        variant={step.is_completed ? 'success' : 'neutral'}
+                                        className={step.is_completed ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}
+                                    >
+                                        {step.progress === null ? 'Pending' : `${step.progress}%`}
+                                    </Badge>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </Card>
+            ))}
         </div>
     );
 }

@@ -137,7 +137,7 @@ export function TrackViewer() {
             </header>
 
             {/* Admin Management Section */}
-            {track.is_creator && <AdminCandidateSection trackId={trackId!} />}
+            {track.is_creator && !parentRoadmap && <AdminCandidateSection trackId={trackId!} />}
 
             <div className="space-y-12">
                 {track.modules?.map((mod: any, idx: number) => (
