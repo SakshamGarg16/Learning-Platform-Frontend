@@ -97,14 +97,42 @@ export default function CandidatePerspective() {
     const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-    const { data: dossier, isLoading } = useQuery({
+    const { data: dossier, isLoading, isError, error } = useQuery({
         queryKey: ['dossier', trackId, learnerId],
         queryFn: async () => (await api.get(`/tracks/${trackId}/candidate_dossier/${learnerId}/`)).data,
         enabled: !!trackId && !!learnerId
     });
 
-    const currentLesson = dossier?.modules.flatMap((m: any) => m.lessons).find((l: any) => l.id === selectedLessonId);
-    const currentModule = dossier?.modules.find((m: any) => m.id === selectedModuleId);
+    const modules = Array.isArray(dossier?.modules) ? dossier.modules : [];
+    const learnerName = dossier?.learner?.name || 'Candidate';
+    const finalAssessment = dossier?.final_assessment || null;
+    const finalAttempts = Array.isArray(finalAssessment?.attempts) ? finalAssessment.attempts : [];
+    const currentLesson = modules.flatMap((m: any) => Array.isArray(m?.lessons) ? m.lessons : []).find((l: any) => l.id === selectedLessonId);
+    const currentModule = modules.find((m: any) => m.id === selectedModuleId);
+
+    const getAttemptAnswers = (attempt: any) => (
+        attempt?.answers && typeof attempt.answers === 'object' ? attempt.answers : {}
+    );
+
+    const getQuestionOptions = (question: any) => (
+        Array.isArray(question?.options) ? question.options : []
+    );
+
+    const getAttemptQuestions = (attempt: any) => {
+        if (Array.isArray(attempt?.questions_snapshot)) {
+            return attempt.questions_snapshot.filter((q: any) => q && Array.isArray(q.options));
+        }
+        if (Array.isArray(finalAssessment?.questions)) {
+            return finalAssessment.questions.filter((q: any) => q && Array.isArray(q.options));
+        }
+        return [];
+    };
+
+    const currentAssessment = currentModule?.assessment || null;
+    const currentAssessmentAttempts = Array.isArray(currentAssessment?.attempts) ? currentAssessment.attempts : [];
+    const currentAssessmentQuestions = Array.isArray(currentAssessment?.questions)
+        ? currentAssessment.questions.filter((q: any) => q && Array.isArray(q.options))
+        : [];
 
     const handleLessonSelect = (id: string) => {
         setSelectedLessonId(id);
@@ -139,6 +167,17 @@ export default function CandidatePerspective() {
         </div>
     );
 
+    if (isError) return (
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-12">
+            <Card className="max-w-xl w-full p-8 bg-neutral-900/40 border-neutral-800 rounded-[2rem] text-neutral-300">
+                <h2 className="text-xl font-bold text-white mb-3">Candidate audit failed to load</h2>
+                <p className="text-sm text-neutral-400">
+                    {error instanceof Error ? error.message : 'The candidate dossier request did not complete successfully.'}
+                </p>
+            </Card>
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-[#050505] text-neutral-200 selection:bg-blue-500/30 flex relative">
             {/* Mobile Sidebar Overlay */}
@@ -169,10 +208,10 @@ export default function CandidatePerspective() {
                     </button>
                     <div className="flex items-center gap-4 py-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 flex items-center justify-center text-blue-400 font-black">
-                            {dossier?.learner.name.charAt(0)}
+                            {learnerName.charAt(0)}
                         </div>
                         <div>
-                            <h2 className="font-bold text-white leading-tight">{dossier?.learner.name}</h2>
+                            <h2 className="font-bold text-white leading-tight">{learnerName}</h2>
                             <p className="text-[10px] text-neutral-500 font-mono tracking-tighter uppercase">Learner Perspective</p>
                         </div>
                     </div>
@@ -194,7 +233,7 @@ export default function CandidatePerspective() {
 
                     <div className="h-px bg-neutral-800/50 mx-2" />
 
-                    {dossier?.final_assessment && (
+                    {finalAssessment && (
                         <button
                             onClick={handleFinalAssessmentSelect}
                             className={`w-full text-left p-4 rounded-3xl transition-all duration-300 flex items-center gap-4 ${viewMode === 'final_assessment'
@@ -208,20 +247,20 @@ export default function CandidatePerspective() {
                             <div className="min-w-0">
                                 <span className="text-xs font-black uppercase tracking-widest block truncate">Final Evaluation</span>
                                 <span className="text-[10px] text-neutral-200/70 block">
-                                    {dossier.final_assessment.attempt_count || 0} attempts
+                                    {finalAssessment.attempt_count || 0} attempts
                                 </span>
                             </div>
                         </button>
                     )}
 
-                    {dossier?.modules.map((module: any, mIdx: number) => (
+                    {modules.map((module: any, mIdx: number) => (
                         <div key={module.id} className="space-y-4">
                             <div className="flex items-center gap-3 px-2">
                                 <span className="text-[10px] font-black font-mono text-neutral-600 tabular-nums">{String(mIdx + 1).padStart(2, '0')}</span>
                                 <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] truncate">{module.title}</h3>
                             </div>
                             <div className="space-y-1">
-                                {module.lessons.map((lesson: any) => (
+                                {(Array.isArray(module?.lessons) ? module.lessons : []).map((lesson: any) => (
                                     <button
                                         key={lesson.id}
                                         onClick={() => handleLessonSelect(lesson.id)}
@@ -361,7 +400,7 @@ export default function CandidatePerspective() {
                                                         )}
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        {module.lessons.map((lesson: any) => (
+                                                        {(Array.isArray(module?.lessons) ? module.lessons : []).map((lesson: any) => (
                                                             <button
                                                                 key={lesson.id}
                                                                 onClick={() => handleLessonSelect(lesson.id)}
@@ -485,23 +524,23 @@ export default function CandidatePerspective() {
                                             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Technical Evaluation</h2>
                                             <div className="flex items-center gap-4 pt-2">
                                                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
-                                                    {currentModule?.assessment?.attempts.length || 0} Attempts Recorded
+                                                    {currentAssessmentAttempts.length || 0} Attempts Recorded
                                                 </Badge>
-                                                {currentModule?.assessment?.attempts[0] && (
-                                                    <Badge className={`${currentModule.assessment.attempts[0].passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'} px-3 py-1 font-black uppercase text-[10px] tracking-widest`}>
-                                                        Audit Status: {currentModule.assessment.attempts[0].passed ? 'PASSED' : 'DEFICIENCY'}
+                                                {currentAssessmentAttempts[0] && (
+                                                    <Badge className={`${currentAssessmentAttempts[0].passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'} px-3 py-1 font-black uppercase text-[10px] tracking-widest`}>
+                                                        Audit Status: {currentAssessmentAttempts[0].passed ? 'PASSED' : 'DEFICIENCY'}
                                                     </Badge>
                                                 )}
                                             </div>
                                         </div>
 
-                                        {currentModule?.assessment?.attempts[0] && (
+                                        {currentAssessmentAttempts[0] && (
                                             <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-center justify-center min-w-[160px] relative overflow-hidden group">
                                                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1 relative z-10">Candidate mastery</span>
                                                 <div className="flex items-baseline gap-1 relative z-10">
-                                                    <span className={`text-5xl font-black italic tracking-tighter ${currentModule.assessment.attempts[0].passed ? 'text-green-400' : 'text-red-400'}`}>
-                                                        {Math.round(currentModule.assessment.attempts[0].score)}
+                                                    <span className={`text-5xl font-black italic tracking-tighter ${currentAssessmentAttempts[0].passed ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {Math.round(currentAssessmentAttempts[0].score)}
                                                     </span>
                                                     <span className="text-neutral-500 font-bold text-xl">/100</span>
                                                 </div>
@@ -510,14 +549,14 @@ export default function CandidatePerspective() {
                                         )}
                                     </div>
 
-                                    {currentModule?.assessment?.attempts.map((attempt: any, aIdx: number) => (
+                                    {currentAssessmentAttempts.map((attempt: any, aIdx: number) => (
                                         <div key={attempt.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${aIdx * 100}ms` }}>
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${attempt.passed ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}`}>
                                                     {Math.round(attempt.score)}%
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-white italic uppercase tracking-tight text-sm">Attempt {currentModule.assessment.attempts.length - aIdx}</h3>
+                                                    <h3 className="font-bold text-white italic uppercase tracking-tight text-sm">Attempt {currentAssessmentAttempts.length - aIdx}</h3>
                                                     <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
                                                         {new Date(attempt.created_at).toLocaleDateString()} • {attempt.passed ? 'Succeeded' : 'Deficiency Identified'}
                                                     </p>
@@ -550,9 +589,11 @@ export default function CandidatePerspective() {
 
                                                 {/* Questions & Answers */}
                                                 <div className="space-y-12">
-                                                    {currentModule.assessment.questions.map((q: any, qIdx: number) => {
+                                                    {currentAssessmentQuestions.map((q: any, qIdx: number) => {
                                                         // Ensure we handle both string and numeric keys in answers_data
-                                                        const rawUserAnswer = attempt.answers[qIdx] !== undefined ? attempt.answers[qIdx] : attempt.answers[String(qIdx)];
+                                                        const attemptAnswers = getAttemptAnswers(attempt);
+                                                        const questionOptions = getQuestionOptions(q);
+                                                        const rawUserAnswer = attemptAnswers[qIdx] !== undefined ? attemptAnswers[qIdx] : attemptAnswers[String(qIdx)];
 
                                                         // Handle both q.correct_answer (array or single) and legacy q.correct_index
                                                         const correctSet = new Set(
@@ -578,7 +619,7 @@ export default function CandidatePerspective() {
                                                                 </div>
 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
-                                                                    {q.options.map((opt: string, oIdx: number) => {
+                                                                    {questionOptions.map((opt: string, oIdx: number) => {
                                                                         const oIdxStr = String(oIdx);
                                                                         const isSelected = Array.isArray(rawUserAnswer)
                                                                             ? rawUserAnswer.map(String).includes(oIdxStr)
@@ -619,13 +660,13 @@ export default function CandidatePerspective() {
                                                                             <div className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
                                                                             <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Candidate marked:</span>
                                                                             <span className={`text-[10px] font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                                                                                {Array.isArray(rawUserAnswer) ? rawUserAnswer.map(idx => q.options[idx]).join(", ") : q.options[rawUserAnswer] || 'UNMARKED'}
+                                                                                {Array.isArray(rawUserAnswer) ? rawUserAnswer.map(idx => questionOptions[idx]).join(", ") : questionOptions[rawUserAnswer] || 'UNMARKED'}
                                                                             </span>
                                                                         </div>
                                                                         <div className="flex items-center gap-2 border-l border-white/10 pl-6">
                                                                             <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Correct Audit Key:</span>
                                                                             <span className="text-[10px] font-bold text-blue-400">
-                                                                                {Array.isArray(q.correct_answer) ? q.correct_answer.map((idx: any) => q.options[idx]).join(", ") : q.options[q.correct_answer || q.correct_index]}
+                                                                                {Array.isArray(q.correct_answer) ? q.correct_answer.map((idx: any) => questionOptions[idx]).join(", ") : questionOptions[q.correct_answer || q.correct_index]}
                                                                             </span>
                                                                         </div>
                                                                     </div>
@@ -652,39 +693,39 @@ export default function CandidatePerspective() {
                                     <div className="flex justify-between items-start pb-12 border-b border-neutral-900">
                                         <div className="space-y-3">
                                             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                                                Certification Audit <ChevronRight size={10} /> {dossier?.final_assessment?.title}
+                                                Certification Audit <ChevronRight size={10} /> {finalAssessment?.title}
                                             </p>
                                             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic uppercase">Final Evaluation Review</h2>
                                             <div className="flex items-center gap-4 pt-2 flex-wrap">
                                                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
-                                                    {dossier?.final_assessment?.attempt_count || 0} Attempts Recorded
+                                                    {finalAssessment?.attempt_count || 0} Attempts Recorded
                                                 </Badge>
-                                                {dossier?.final_assessment?.attempts?.[0] && (
-                                                    <Badge className={`${dossier.final_assessment.attempts[0].passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'} px-3 py-1 font-black uppercase text-[10px] tracking-widest`}>
-                                                        Audit Status: {dossier.final_assessment.attempts[0].passed ? 'CERTIFIED' : 'NOT CLEARED'}
+                                                {finalAttempts[0] && (
+                                                    <Badge className={`${finalAttempts[0].passed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'} px-3 py-1 font-black uppercase text-[10px] tracking-widest`}>
+                                                        Audit Status: {finalAttempts[0].passed ? 'CERTIFIED' : 'NOT CLEARED'}
                                                     </Badge>
                                                 )}
                                                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1 font-black uppercase text-[10px] tracking-widest">
-                                                    Pass Mark: {dossier?.final_assessment?.passing_score}%
+                                                    Pass Mark: {finalAssessment?.passing_score}%
                                                 </Badge>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {!dossier?.final_assessment && (
+                                    {!finalAssessment && (
                                         <Card className="p-8 bg-neutral-900/30 border-neutral-800 rounded-[2rem] text-neutral-400">
                                             Final evaluation has not been generated for this track yet.
                                         </Card>
                                     )}
 
-                                    {dossier?.final_assessment?.attempts?.map((attempt: any, aIdx: number) => (
+                                    {finalAttempts.map((attempt: any, aIdx: number) => (
                                         <div key={attempt.id} className="space-y-8">
                                             <div className="flex items-center gap-4 flex-wrap">
                                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${attempt.passed ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}`}>
                                                     {Math.round(attempt.score)}%
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-white italic uppercase tracking-tight text-sm">Final Attempt {dossier.final_assessment.attempts.length - aIdx}</h3>
+                                                    <h3 className="font-bold text-white italic uppercase tracking-tight text-sm">Final Attempt {finalAttempts.length - aIdx}</h3>
                                                     <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
                                                         {new Date(attempt.created_at).toLocaleDateString()} • {attempt.passed ? 'Passed' : 'Failed'}
                                                     </p>
@@ -700,7 +741,7 @@ export default function CandidatePerspective() {
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
                                                         <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Attempts</div>
-                                                        <div className="text-2xl font-black text-white">{dossier.final_assessment.attempt_count}</div>
+                                                        <div className="text-2xl font-black text-white">{finalAssessment?.attempt_count || 0}</div>
                                                     </div>
                                                     <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
                                                         <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Integrity</div>
@@ -732,8 +773,10 @@ export default function CandidatePerspective() {
                                                 </div>
 
                                                 <div className="space-y-10">
-                                                    {dossier.final_assessment.questions.map((q: any, qIdx: number) => {
-                                                        const rawUserAnswer = attempt.answers[qIdx] !== undefined ? attempt.answers[qIdx] : attempt.answers[String(qIdx)];
+                                                    {getAttemptQuestions(attempt).map((q: any, qIdx: number) => {
+                                                        const attemptAnswers = getAttemptAnswers(attempt);
+                                                        const questionOptions = getQuestionOptions(q);
+                                                        const rawUserAnswer = attemptAnswers[qIdx] !== undefined ? attemptAnswers[qIdx] : attemptAnswers[String(qIdx)];
                                                         const correctSet = new Set(
                                                             Array.isArray(q.correct_answer)
                                                                 ? q.correct_answer.map(String)
@@ -758,7 +801,7 @@ export default function CandidatePerspective() {
                                                                 </div>
 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
-                                                                    {q.options.map((opt: string, oIdx: number) => {
+                                                                    {questionOptions.map((opt: string, oIdx: number) => {
                                                                         const oIdxStr = String(oIdx);
                                                                         const isSelected = Array.isArray(rawUserAnswer)
                                                                             ? rawUserAnswer.map(String).includes(oIdxStr)

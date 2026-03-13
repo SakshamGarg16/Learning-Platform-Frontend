@@ -9,6 +9,7 @@ import { ReadinessScorecard } from './pages/ReadinessScorecard';
 import { StudyMode } from './pages/StudyMode';
 import { AssessmentMode } from './pages/AssessmentMode';
 import { FinalAssessmentMode } from './pages/FinalAssessmentMode';
+import { CertificateView } from './pages/CertificateView';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Onboarding } from './pages/Onboarding';
@@ -91,6 +92,7 @@ function App() {
             <Route path="/roadmaps/:id" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps/share/:shareRoadmapId" element={<ProtectedRoute><AppLayout><RoadmapExplorer /></AppLayout></ProtectedRoute>} />
             <Route path="/roadmaps/:roadmapId/final-assessment" element={<ProtectedRoute><FinalAssessmentMode /></ProtectedRoute>} />
+            <Route path="/certificate/:certificateCode" element={<CertificateView />} />
             <Route path="/admin/track/:trackId/candidate/:learnerId/perspective" element={<AdminRoute><CandidatePerspective /></AdminRoute>} />
             <Route path="/admin/people" element={<PlatformOwnerRoute><AppLayout><PlatformPeople /></AppLayout></PlatformOwnerRoute>} />
           </Routes>

@@ -57,6 +57,8 @@ interface Roadmap {
         completed_modules: number;
         total_modules: number;
         passed: boolean;
+        attempts_remaining?: number;
+        assessment?: { max_attempts?: number } | null;
         certificate?: { certificate_code: string } | null;
     };
 }
@@ -481,6 +483,9 @@ export function RoadmapExplorer() {
                                     </p>
                                     <p className="text-sm text-neutral-500">
                                         Progress: {activeRoadmap.final_assessment_status?.completed_modules || 0} / {activeRoadmap.final_assessment_status?.total_modules || 0} modules
+                                    </p>
+                                    <p className="text-sm text-neutral-500">
+                                        Attempts left: {activeRoadmap.final_assessment_status?.attempts_remaining ?? activeRoadmap.final_assessment_status?.assessment?.max_attempts ?? 3}
                                     </p>
                                     {activeRoadmap.final_assessment_status?.certificate && (
                                         <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">

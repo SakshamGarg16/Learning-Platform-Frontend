@@ -139,7 +139,7 @@ export function TrackViewer() {
             {/* Admin Management Section */}
             {track.is_creator && !parentRoadmap && <AdminCandidateSection trackId={trackId!} />}
 
-            {!track.is_creator && (
+            {!track.is_creator && !parentRoadmap && (
                 <Card className="p-6 md:p-8 border-neutral-800 bg-neutral-900/40">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="space-y-3">
@@ -152,6 +152,9 @@ export function TrackViewer() {
                             </p>
                             <p className="text-sm text-neutral-500">
                                 Progress: {track.final_assessment_status?.completed_modules || 0} / {track.final_assessment_status?.total_modules || 0} modules
+                            </p>
+                            <p className="text-sm text-neutral-500">
+                                Attempts left: {track.final_assessment_status?.attempts_remaining ?? track.final_assessment_status?.assessment?.max_attempts ?? 3}
                             </p>
                             {track.final_assessment_status?.certificate && (
                                 <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
